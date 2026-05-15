@@ -1,46 +1,60 @@
-const { firestore, fieldValue } = require('../config/firebaseAdmin');
+const { firestore, fieldValue, firebaseEnabled } = require('../config/firebaseAdmin');
+
+function ensureEnabled() {
+  if (!firebaseEnabled || !firestore) {
+    return false;
+  }
+  return true;
+}
 
 async function syncKebutuhanRealtime(kebutuhan) {
-  await firestore.collection('update_kebutuhan_realtime').doc(String(kebutuhan.id)).set({
+  if (!ensureEnabled()) return null;
+  return firestore.collection('update_kebutuhan_realtime').doc(String(kebutuhan.id)).set({
     ...kebutuhan,
     updated_at: fieldValue.serverTimestamp()
   }, { merge: true });
 }
 
 async function logDonationNotification(notification) {
-  await firestore.collection('notifikasi_donatur').add({
+  if (!ensureEnabled()) return null;
+  return firestore.collection('notifikasi_donatur').add({
     ...notification,
     created_at: fieldValue.serverTimestamp()
   });
 }
 
 async function logTransparansiTimeline(entry) {
-  await firestore.collection('transparansi_timeline').add({
+  if (!ensureEnabled()) return null;
+  return firestore.collection('transparansi_timeline').add({
     ...entry,
     created_at: fieldValue.serverTimestamp()
   });
 }
 
 async function logBuktiFoto(entry) {
-  await firestore.collection('bukti_foto').add({
+  if (!ensureEnabled()) return null;
+  return firestore.collection('bukti_foto').add({
     ...entry,
     created_at: fieldValue.serverTimestamp()
   });
 }
 
 async function logCeritaAktivitas(entry) {
-  await firestore.collection('cerita_log_aktivitas_panti').add({
+  if (!ensureEnabled()) return null;
+  return firestore.collection('cerita_log_aktivitas_panti').add({
     ...entry,
     created_at: fieldValue.serverTimestamp()
   });
 }
 
 async function listCollection(collectionName, orderByField = 'created_at') {
+  if (!ensureEnabled()) return [];
   const snapshot = await firestore.collection(collectionName).orderBy(orderByField, 'desc').get();
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
 async function listNotificationsByDonatur(idDonatur) {
+  if (!ensureEnabled()) return [];
   const snapshot = await firestore.collection('notifikasi_donatur')
     .where('id_donatur', '==', Number(idDonatur))
     .orderBy('created_at', 'desc')

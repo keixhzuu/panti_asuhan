@@ -1,6 +1,6 @@
 const path = require('path');
 const crypto = require('crypto');
-const { bucket } = require('../config/storage');
+const { bucket, storageEnabled } = require('../config/storage');
 
 function sanitizeFileName(fileName) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -8,6 +8,10 @@ function sanitizeFileName(fileName) {
 
 async function uploadBufferToStorage(file, folder) {
   if (!file) {
+    return null;
+  }
+  if (!storageEnabled || !bucket) {
+    console.warn('Skipping upload because GCS is not configured.');
     return null;
   }
 
