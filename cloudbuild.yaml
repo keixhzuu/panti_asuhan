@@ -1,0 +1,62 @@
+substitutions:
+  _REGION: asia-southeast2
+  _BACKEND_SERVICE: donasi-panti-backend
+  _FRONTEND_SERVICE: donasi-panti-frontend
+  _ARTIFACT_REGISTRY: asia-southeast2-docker.pkg.dev
+  _REPO: donasi-panti
+  _PROJECT_ID: $PROJECT_ID
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: backend
+    args:
+      - build
+      - -t
+      - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_BACKEND_SERVICE}
+      - --image
+      - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --set-env-vars
+      - NODE_ENV=production
+
+  - name: node:20
+    dir: frontend
+    entrypoint: npm
+    args:
+      - install
+
+  - name: node:20
+    dir: frontend
+    entrypoint: npm
+    args:
+      - run
+      - build
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    dir: frontend
+    entrypoint: gcloud
+    args:
+      - app
+      - deploy
+      - app.yaml
+      - --quiet
+
+images:
+  - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
