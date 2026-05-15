@@ -51,7 +51,7 @@ export default function RegisterPage() {
             {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Memproses...' : 'Daftar'}</Button>
           </form>
-          <p className="text-sm text-slate-600">Sudah punya akun? <Link to="/login" className="font-semibold text-sea">Login</Link></p>
+          <p className="text-sm text-slate-600">Sudah punya akun? <Link to="/donatur/login" className="font-semibold text-sea">Login donatur</Link></p>
         </Card>
       </div>
     </div>

@@ -2,7 +2,9 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import LoginPage from './pages/LoginPage';
+import AccessSelectPage from './pages/AccessSelectPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import DonaturLoginPage from './pages/DonaturLoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminKebutuhanPage from './pages/admin/AdminKebutuhanPage';
@@ -24,7 +26,7 @@ function RootRedirect() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/access" replace />;
   }
 
   return <Navigate to={user.role === 'pengurus' ? '/admin/dashboard' : '/donatur/beranda'} replace />;
@@ -34,7 +36,10 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/access" element={<AccessSelectPage />} />
+      <Route path="/login" element={<Navigate to="/access" replace />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/donatur/login" element={<DonaturLoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute roles={["pengurus"]} />}>
