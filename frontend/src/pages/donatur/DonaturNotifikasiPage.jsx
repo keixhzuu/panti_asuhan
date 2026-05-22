@@ -1,22 +1,24 @@
 import { useAuth } from '../../context/AuthContext';
-import useFirestoreCollection from '../../hooks/useFirestoreCollection';
+import { useEffect, useState } from 'react';
+import api from '../../lib/api';
 import { Badge, Card, PageShell } from '../../components/UI';
 
 export default function DonaturNotifikasiPage() {
   const { user } = useAuth();
-  const { data: items } = useFirestoreCollection('notifikasi_donatur', {
-    whereField: 'id_donatur',
-    whereValue: user?.id_donatur,
-    orderByField: 'created_at',
-    limitCount: 30
-  });
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    api.get('/donatur/notifikasi')
+      .then((response) => setItems(response.data.data))
+      .catch(() => setItems([]));
+  }, [user?.id_donatur]);
 
   return (
-    <PageShell title="Notifikasi Real-time" subtitle="Notifikasi donatur diambil langsung dari Firestore collection notifikasi_donatur berdasarkan id_donatur akun aktif.">
+    <PageShell title="Notifikasi Donatur" subtitle="Notifikasi diambil dari PostgreSQL berdasarkan akun donatur aktif.">
       <Card>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold">Kotak notifikasi</h2>
-          <Badge tone="ember">Live</Badge>
+          <Badge tone="ember">Live DB</Badge>
         </div>
         <div className="mt-4 space-y-3">
           {items.map((item) => (

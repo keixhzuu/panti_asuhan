@@ -27,13 +27,65 @@ async function uploadBufferToStorage(file, folder) {
     }
   });
 
+  const [signedUrl] = await storageFile.getSignedUrl({
+    action: 'read',
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7
+  });
+
   return {
     path: objectName,
-    url: `https://storage.googleapis.com/${bucket.name}/${objectName}`,
+    url: signedUrl,
     fileName: sanitizeFileName(file.originalname || 'file')
   };
 }
 
+function extractStorageObjectPath(storedUrl) {
+  if (!storedUrl || typeof storedUrl !== 'string') {
+    return null;
+  }
+
+  if (storedUrl.startsWith('https://storage.googleapis.com/')) {
+    // Match: https://storage.googleapis.com/{bucket}/{object}[?query]
+    const m = storedUrl.match(/^https:\/\/storage\.googleapis\.com\/[^\/]+\/(.+?)(?:\?|$)/);
+    return m ? m[1] : null;
+  }
+
+  if (storedUrl.startsWith('gs://')) {
+    return storedUrl.replace(/^gs:\/\/[^^/]+\//, '');
+  }
+
+  return null;
+}
+
+async function getSignedUrlForStoredUrl(storedUrl) {
+  if (!storageEnabled || !bucket || !storedUrl) {
+    return storedUrl || null;
+  }
+
+  // If the URL already appears to be a signed URL, return it as-is.
+  if (
+    storedUrl.includes('signBlob=') ||
+    storedUrl.includes('X-Goog-Signature=') ||
+    storedUrl.includes('GoogleAccessId=') ||
+    storedUrl.includes('Expires=')
+  ) {
+    return storedUrl;
+  }
+
+  const objectPath = extractStorageObjectPath(storedUrl);
+  if (!objectPath) {
+    return storedUrl;
+  }
+
+  const [signedUrl] = await bucket.file(objectPath).getSignedUrl({
+    action: 'read',
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7
+  });
+
+  return signedUrl;
+}
+
 module.exports = {
-  uploadBufferToStorage
+  uploadBufferToStorage,
+  getSignedUrlForStoredUrl
 };

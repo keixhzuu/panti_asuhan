@@ -11,6 +11,7 @@ import AdminKebutuhanPage from './pages/admin/AdminKebutuhanPage';
 import AdminVerifikasiDonasiPage from './pages/admin/AdminVerifikasiDonasiPage';
 import AdminPenyaluranPage from './pages/admin/AdminPenyaluranPage';
 import AdminCeritaPage from './pages/admin/AdminCeritaPage';
+import AdminDonationReviewPage from './pages/admin/AdminDonationReviewPage';
 import DonaturBerandaPage from './pages/donatur/DonaturBerandaPage';
 import DonaturKatalogPage from './pages/donatur/DonaturKatalogPage';
 import DonaturTrackingPage from './pages/donatur/DonaturTrackingPage';
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/kebutuhan" element={<AdminKebutuhanPage />} />
           <Route path="/admin/verifikasi-donasi" element={<AdminVerifikasiDonasiPage />} />
+          <Route path="/admin/verifikasi-donasi/:id" element={<AdminDonationReviewPage />} />
           <Route path="/admin/penyaluran" element={<AdminPenyaluranPage />} />
           <Route path="/admin/cerita" element={<AdminCeritaPage />} />
         </Route>

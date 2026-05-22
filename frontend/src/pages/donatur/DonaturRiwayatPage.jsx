@@ -24,7 +24,7 @@ export default function DonaturRiwayatPage() {
                   <p className="text-sm text-slate-500">{item.nama_panti} • {item.metode_bayar || 'Metode tidak diisi'}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge tone={item.status === 'pending' ? 'ember' : 'sea'}>{item.status}</Badge>
+                  <Badge tone={item.status === 'pending' ? 'ember' : item.status === 'ditolak' ? 'red' : 'sea'}>{item.status}</Badge>
                   <span className="text-sm font-bold text-ink">{formatCurrency(item.nominal)}</span>
                 </div>
               </div>

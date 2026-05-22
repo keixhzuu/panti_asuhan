@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
 import { Button, Card, PageShell, Badge } from '../../components/UI';
 import { formatCurrency } from '../../utils/format';
 
@@ -15,13 +16,21 @@ export default function AdminVerifikasiDonasiPage() {
     loadData().catch(() => {});
   }, []);
 
+  const navigate = useNavigate();
+
   const verify = async (id, status) => {
+    // For approving, navigate to review page so admin can inspect proof first
+    if (status === 'verifikasi') {
+      navigate(`/admin/verifikasi-donasi/${id}`);
+      return;
+    }
+
     await api.put(`/donasi/${id}/verify`, { status });
     await loadData();
   };
 
   return (
-    <PageShell title="Verifikasi Donasi" subtitle="Daftar donasi pending, ubah status menjadi terverifikasi atau diterima, lalu sistem akan mengirim notifikasi Firestore ke donatur terkait.">
+    <PageShell title="Verifikasi Donasi" subtitle="Daftar donasi pending, ubah status menjadi verifikasi atau ditolak, lalu sistem akan mengirim notifikasi ke donatur terkait.">
       <div className="grid gap-4">
         {items.map((item) => (
           <Card key={item.id}>
@@ -35,8 +44,7 @@ export default function AdminVerifikasiDonasiPage() {
                 <p className="mt-1 text-sm text-slate-500">{item.metode_bayar || 'Metode tidak diisi'} • {formatCurrency(item.nominal)}</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => verify(item.id, 'terverifikasi')}>Verifikasi</Button>
-                <Button onClick={() => verify(item.id, 'diterima')}>Terima</Button>
+                <Button variant="outline" onClick={() => verify(item.id, 'verifikasi')}>Tinjau</Button>
               </div>
             </div>
           </Card>

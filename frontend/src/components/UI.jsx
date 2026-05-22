@@ -32,6 +32,7 @@ export function StatCard({ label, value, hint, tone = 'ember' }) {
 }
 
 export function Button({ children, variant = 'primary', className = '', as: Component = 'button', ...props }) {
+  const isDisabled = Boolean(props.disabled);
   const styles = {
     primary: 'bg-ink text-white hover:bg-slate-800',
     soft: 'bg-amber-50 text-ember hover:bg-amber-100',
@@ -39,9 +40,11 @@ export function Button({ children, variant = 'primary', className = '', as: Comp
     danger: 'bg-red-600 text-white hover:bg-red-700'
   };
 
+  const disabledStyle = 'cursor-not-allowed bg-slate-300 text-slate-500 hover:bg-slate-300 pointer-events-none';
+
   return (
     <Component
-      className={`inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold transition ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-bold transition ${isDisabled ? disabledStyle : styles[variant]} ${className}`}
       {...props}
     >
       {children}

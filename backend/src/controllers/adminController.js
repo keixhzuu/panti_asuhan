@@ -4,7 +4,7 @@ const { sendSuccess } = require('../utils/response');
 
 const dashboard = asyncHandler(async (req, res) => {
   const [donasiMasuk, kebutuhanAktif, donaturBaru, stokHampirHabis, totalPenyaluran] = await Promise.all([
-    pool.query(`SELECT COALESCE(SUM(nominal), 0) AS total FROM donasi WHERE status IN ('terverifikasi', 'diterima')`),
+    pool.query(`SELECT COALESCE(SUM(nominal), 0) AS total FROM donasi WHERE status = 'verifikasi'`),
     pool.query(`SELECT COUNT(*) AS total FROM kebutuhan_logistik WHERE status = 'aktif'`),
     pool.query(`SELECT COUNT(*) AS total FROM donatur WHERE created_at >= NOW() - INTERVAL '30 days'`),
     pool.query(`SELECT COUNT(*) AS total FROM kebutuhan_logistik WHERE status = 'aktif' AND jumlah_dibutuhkan <= 5`),

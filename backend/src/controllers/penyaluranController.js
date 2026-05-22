@@ -13,20 +13,23 @@ const createOne = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Donasi, panti, jumlah, dan tanggal salur wajib diisi.' });
   }
 
-  const result = await pool.query(
-    `INSERT INTO penyaluran_dana (id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, status_penyaluran)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
-    [id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan || null, status_penyaluran || 'berhasil']
-  );
-
-  const penyaluran = result.rows[0];
   let buktiUrl = null;
 
   if (req.file) {
     const uploaded = await uploadBufferToStorage(req.file, 'bukti-penyaluran');
     buktiUrl = uploaded?.url || null;
+  }
 
+  const result = await pool.query(
+    `INSERT INTO penyaluran_dana (id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, bukti_url, status_penyaluran)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan || null, buktiUrl, status_penyaluran || 'berhasil']
+  );
+
+  const penyaluran = result.rows[0];
+
+  if (buktiUrl) {
     await logBuktiFoto({
       id_penyaluran: penyaluran.id,
       id_panti: Number(id_panti),
@@ -68,11 +71,19 @@ const attachBukti = asyncHandler(async (req, res) => {
   }
 
   const uploaded = await uploadBufferToStorage(req.file, 'bukti-penyaluran');
+  const buktiUrl = uploaded?.url || null;
+
+  if (buktiUrl) {
+    await pool.query(
+      'UPDATE penyaluran_dana SET bukti_url = $1 WHERE id = $2',
+      [buktiUrl, Number(id_penyaluran)]
+    );
+  }
 
   await logBuktiFoto({
     id_penyaluran: Number(id_penyaluran),
     id_panti: penyaluranResult.rows[0].id_panti,
-    url: uploaded.url,
+    url: buktiUrl,
     deskripsi: deskripsi || 'Bukti tambahan penyaluran dana',
     tipe: 'penyaluran_dana'
   });
@@ -84,13 +95,13 @@ const attachBukti = asyncHandler(async (req, res) => {
     jumlah_disalurkan: Number(penyaluranResult.rows[0].jumlah_disalurkan),
     tanggal_salur: penyaluranResult.rows[0].tanggal_salur,
     deskripsi_penggunaan: deskripsi || penyaluranResult.rows[0].deskripsi_penggunaan,
-    bukti_url: uploaded.url,
+    bukti_url: buktiUrl,
     tipe: 'bukti_penyaluran'
   });
 
   return sendSuccess(res, 'Bukti penyaluran berhasil diunggah.', {
     id_penyaluran: Number(id_penyaluran),
-    url: uploaded.url,
+    url: buktiUrl,
     deskripsi: deskripsi || null
   }, 201);
 });

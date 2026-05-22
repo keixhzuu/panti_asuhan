@@ -43,7 +43,7 @@ const generateOne = asyncHandler(async (req, res) => {
     pool.query(
       `SELECT COALESCE(SUM(nominal), 0) AS total
        FROM donasi
-       WHERE status IN ('terverifikasi', 'diterima')
+      WHERE status = 'verifikasi'
        AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', $1::date)`,
       [periodLabel]
     ),

@@ -22,16 +22,16 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const createOne = asyncHandler(async (req, res) => {
-  const { id_panti, nama_barang, jumlah_dibutuhkan, satuan, tingkat_urgensi, status } = req.body;
-  if (!id_panti || !nama_barang || !jumlah_dibutuhkan) {
-    return res.status(400).json({ message: 'Panti, nama barang, dan jumlah dibutuhkan wajib diisi.' });
+  const { id_panti, nama_barang, jumlah_dibutuhkan, harga_satuan, satuan, tingkat_urgensi, status } = req.body;
+  if (!id_panti || !nama_barang || !jumlah_dibutuhkan || harga_satuan === undefined || harga_satuan === null) {
+    return res.status(400).json({ message: 'Panti, nama barang, jumlah dibutuhkan, dan harga satuan wajib diisi.' });
   }
 
   const result = await pool.query(
-    `INSERT INTO kebutuhan_logistik (id_panti, nama_barang, jumlah_dibutuhkan, satuan, tingkat_urgensi, status)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO kebutuhan_logistik (id_panti, nama_barang, jumlah_dibutuhkan, harga_satuan, satuan, tingkat_urgensi, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [id_panti, nama_barang, jumlah_dibutuhkan, satuan || null, tingkat_urgensi || 'Biasa', status || 'aktif']
+    [id_panti, nama_barang, jumlah_dibutuhkan, harga_satuan, satuan || null, tingkat_urgensi || 'Biasa', status || 'aktif']
   );
 
   await syncKebutuhanRealtime({
@@ -43,18 +43,19 @@ const createOne = asyncHandler(async (req, res) => {
 });
 
 const updateOne = asyncHandler(async (req, res) => {
-  const { id_panti, nama_barang, jumlah_dibutuhkan, satuan, tingkat_urgensi, status } = req.body;
+  const { id_panti, nama_barang, jumlah_dibutuhkan, harga_satuan, satuan, tingkat_urgensi, status } = req.body;
   const result = await pool.query(
     `UPDATE kebutuhan_logistik
      SET id_panti = COALESCE($1, id_panti),
          nama_barang = COALESCE($2, nama_barang),
          jumlah_dibutuhkan = COALESCE($3, jumlah_dibutuhkan),
-         satuan = COALESCE($4, satuan),
-         tingkat_urgensi = COALESCE($5, tingkat_urgensi),
-         status = COALESCE($6, status)
-     WHERE id = $7
+         harga_satuan = COALESCE($4, harga_satuan),
+         satuan = COALESCE($5, satuan),
+         tingkat_urgensi = COALESCE($6, tingkat_urgensi),
+         status = COALESCE($7, status)
+     WHERE id = $8
      RETURNING *`,
-    [id_panti || null, nama_barang || null, jumlah_dibutuhkan || null, satuan || null, tingkat_urgensi || null, status || null, req.params.id]
+    [id_panti || null, nama_barang || null, jumlah_dibutuhkan || null, harga_satuan ?? null, satuan || null, tingkat_urgensi || null, status || null, req.params.id]
   );
 
   if (result.rowCount === 0) {

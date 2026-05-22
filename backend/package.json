@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed": "node scripts/seedAdmin.js"
+    "seed": "node scripts/seedAdmin.js",
+    "migrate:donation-status": "node scripts/migrateDonationStatusLabels.js",
+    "migrate:kebutuhan-harga": "node scripts/migrateKebutuhanHargaSatuan.js",
+    "migrate:donasi-jumlah": "node scripts/migrateDonasiJumlah.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
@@ -25,5 +28,10 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
-  }
+  },
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }

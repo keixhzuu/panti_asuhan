@@ -35,6 +35,7 @@ CREATE TABLE kebutuhan_logistik (
     id_panti INT NOT NULL REFERENCES panti(id) ON DELETE CASCADE,
     nama_barang VARCHAR(255) NOT NULL,
     jumlah_dibutuhkan INT NOT NULL,
+    harga_satuan DECIMAL(15,2) NOT NULL DEFAULT 0 CHECK (harga_satuan >= 0),
     satuan VARCHAR(50),
     tingkat_urgensi VARCHAR(20) DEFAULT 'Biasa' CHECK (tingkat_urgensi IN ('Penting', 'Biasa')),
     status VARCHAR(20) DEFAULT 'aktif' CHECK (status IN ('aktif', 'selesai')),
@@ -46,10 +47,11 @@ CREATE TABLE donasi (
     id SERIAL PRIMARY KEY,
     id_donatur INT NOT NULL REFERENCES donatur(id) ON DELETE CASCADE,
     id_kebutuhan INT NOT NULL REFERENCES kebutuhan_logistik(id),
+    jumlah_donasi INT NOT NULL DEFAULT 1 CHECK (jumlah_donasi > 0),
     nominal DECIMAL(15,2) NOT NULL,
     metode_bayar VARCHAR(50),
     bukti_transfer_url TEXT,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'terverifikasi', 'diterima')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'verifikasi', 'ditolak')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -61,6 +63,7 @@ CREATE TABLE penyaluran_dana (
     jumlah_disalurkan DECIMAL(15,2) NOT NULL,
     tanggal_salur DATE NOT NULL,
     deskripsi_penggunaan TEXT,
+    bukti_url TEXT,
     status_penyaluran VARCHAR(20) DEFAULT 'proses' CHECK (status_penyaluran IN ('proses', 'berhasil')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

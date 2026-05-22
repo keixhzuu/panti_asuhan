@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import { Button, Card, PageShell, SelectField, TextField, Badge } from '../../components/UI';
+import { formatCurrency } from '../../utils/format';
 
-const emptyForm = { id_panti: '', nama_barang: '', jumlah_dibutuhkan: '', satuan: '', tingkat_urgensi: 'Biasa', status: 'aktif' };
+const emptyForm = { id_panti: '', nama_barang: '', jumlah_dibutuhkan: '', harga_satuan: '', satuan: '', tingkat_urgensi: 'Biasa', status: 'aktif' };
 
 export default function AdminKebutuhanPage() {
   const [items, setItems] = useState([]);
@@ -27,7 +28,11 @@ export default function AdminKebutuhanPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const payload = { ...form, jumlah_dibutuhkan: Number(form.jumlah_dibutuhkan) };
+    const payload = {
+      ...form,
+      jumlah_dibutuhkan: Number(form.jumlah_dibutuhkan),
+      harga_satuan: Number(form.harga_satuan)
+    };
     if (editingId) {
       await api.put(`/kebutuhan/${editingId}`, payload);
     } else {
@@ -43,6 +48,7 @@ export default function AdminKebutuhanPage() {
       id_panti: item.id_panti,
       nama_barang: item.nama_barang,
       jumlah_dibutuhkan: item.jumlah_dibutuhkan,
+      harga_satuan: item.harga_satuan,
       satuan: item.satuan || '',
       tingkat_urgensi: item.tingkat_urgensi,
       status: item.status
@@ -66,6 +72,7 @@ export default function AdminKebutuhanPage() {
             </SelectField>
             <TextField placeholder="Nama barang" value={form.nama_barang} onChange={(e) => setForm((prev) => ({ ...prev, nama_barang: e.target.value }))} />
             <TextField type="number" placeholder="Jumlah dibutuhkan" value={form.jumlah_dibutuhkan} onChange={(e) => setForm((prev) => ({ ...prev, jumlah_dibutuhkan: e.target.value }))} />
+            <TextField type="number" placeholder="Harga satuan" value={form.harga_satuan} onChange={(e) => setForm((prev) => ({ ...prev, harga_satuan: e.target.value }))} />
             <TextField placeholder="Satuan" value={form.satuan} onChange={(e) => setForm((prev) => ({ ...prev, satuan: e.target.value }))} />
             <SelectField value={form.tingkat_urgensi} onChange={(e) => setForm((prev) => ({ ...prev, tingkat_urgensi: e.target.value }))}>
               <option value="Biasa">Biasa</option>
@@ -93,6 +100,7 @@ export default function AdminKebutuhanPage() {
                   <div>
                     <p className="font-bold text-ink">{item.nama_barang}</p>
                     <p className="text-sm text-slate-500">{item.nama_panti} • {item.jumlah_dibutuhkan} {item.satuan}</p>
+                    <p className="text-sm text-slate-600">{formatCurrency(item.harga_satuan)}/{item.satuan || 'unit'} • Total harga: {formatCurrency(Number(item.harga_satuan || 0) * Number(item.jumlah_dibutuhkan || 0))}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={item.tingkat_urgensi === 'Penting' ? 'ember' : 'neutral'}>{item.tingkat_urgensi}</Badge>
