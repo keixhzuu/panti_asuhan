@@ -16,7 +16,15 @@ export default function AdminDashboard() {
     ])
       .then(([statsResponse, needsResponse, donationResponse]) => {
         setStats(statsResponse.data.data);
-        setRecentNeeds(needsResponse.data.data.slice(0, 5));
+        const sortedNeeds = [...needsResponse.data.data].sort((a, b) => {
+          const remainingA = Number(a.sisa_kebutuhan_terverifikasi ?? a.jumlah_dibutuhkan ?? 0);
+          const remainingB = Number(b.sisa_kebutuhan_terverifikasi ?? b.jumlah_dibutuhkan ?? 0);
+          if (remainingA !== remainingB) return remainingA - remainingB;
+          const createdA = new Date(a.created_at || 0).getTime();
+          const createdB = new Date(b.created_at || 0).getTime();
+          return createdB - createdA;
+        });
+        setRecentNeeds(sortedNeeds.slice(0, 5));
         setRecentDonations(donationResponse.data.data.slice(0, 5));
       })
       .catch(() => {});
@@ -43,12 +51,15 @@ export default function AdminDashboard() {
           </div>
           <div className="mt-4 space-y-3">
             {recentNeeds.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+              <div key={item.id} className="flex items-center justify-between rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-teal-50 px-4 py-3 shadow-sm">
                 <div>
                   <p className="font-semibold text-ink">{item.nama_barang}</p>
                   <p className="text-sm text-slate-500">{item.nama_panti}</p>
                 </div>
-                <p className="text-sm font-bold text-ember">{item.jumlah_dibutuhkan} {item.satuan || ''}</p>
+                <div className="text-right">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sea">Prioritas</p>
+                  <p className="text-sm font-extrabold text-ember">{item.sisa_kebutuhan_terverifikasi} {item.satuan || ''}</p>
+                </div>
               </div>
             ))}
           </div>

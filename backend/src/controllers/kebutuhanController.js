@@ -5,16 +5,42 @@ const { syncKebutuhanRealtime } = require('../utils/firestore');
 
 const getAll = asyncHandler(async (req, res) => {
   const result = await pool.query(
-    `SELECT k.*, p.nama_panti
+    `SELECT
+       k.*,
+       p.nama_panti,
+       COALESCE(donasi_agg.total_terverifikasi, 0) AS total_donasi_terverifikasi,
+       GREATEST(k.jumlah_dibutuhkan - COALESCE(donasi_agg.total_terverifikasi, 0), 0) AS sisa_kebutuhan_terverifikasi
      FROM kebutuhan_logistik k
      JOIN panti p ON p.id = k.id_panti
+     LEFT JOIN LATERAL (
+       SELECT COALESCE(SUM(dn.jumlah_donasi), 0) AS total_terverifikasi
+       FROM donasi dn
+       WHERE dn.id_kebutuhan = k.id
+         AND dn.status = 'verifikasi'
+     ) donasi_agg ON TRUE
      ORDER BY k.created_at DESC`
   );
   return sendSuccess(res, 'Data kebutuhan berhasil dimuat.', result.rows);
 });
 
 const getById = asyncHandler(async (req, res) => {
-  const result = await pool.query('SELECT * FROM kebutuhan_logistik WHERE id = $1', [req.params.id]);
+  const result = await pool.query(
+    `SELECT
+       k.*,
+       p.nama_panti,
+       COALESCE(donasi_agg.total_terverifikasi, 0) AS total_donasi_terverifikasi,
+       GREATEST(k.jumlah_dibutuhkan - COALESCE(donasi_agg.total_terverifikasi, 0), 0) AS sisa_kebutuhan_terverifikasi
+     FROM kebutuhan_logistik k
+     JOIN panti p ON p.id = k.id_panti
+     LEFT JOIN LATERAL (
+       SELECT COALESCE(SUM(dn.jumlah_donasi), 0) AS total_terverifikasi
+       FROM donasi dn
+       WHERE dn.id_kebutuhan = k.id
+         AND dn.status = 'verifikasi'
+     ) donasi_agg ON TRUE
+     WHERE k.id = $1`,
+    [req.params.id]
+  );
   if (result.rowCount === 0) {
     return res.status(404).json({ message: 'Kebutuhan tidak ditemukan.' });
   }
