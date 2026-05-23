@@ -1,0 +1,28 @@
+substitutions:
+  _REGION: asia-southeast2
+  _FRONTEND_SERVICE: donasi-panti-frontend
+  _BACKEND_URL: ''
+
+steps:
+  - name: node:20
+    dir: frontend
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        npm install
+        if [[ -z "${_BACKEND_URL}" ]]; then
+          echo "Missing _BACKEND_URL substitution. Set it to the Cloud Run backend URL before deploying frontend."
+          exit 1
+        fi
+        VITE_API_BASE_URL=${_BACKEND_URL} npm run build
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    dir: frontend
+    entrypoint: gcloud
+    args:
+      - app
+      - deploy
+      - app.yaml
+      - --quiet

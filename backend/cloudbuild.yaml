@@ -1,7 +1,6 @@
 substitutions:
   _REGION: asia-southeast2
   _BACKEND_SERVICE: donasi-panti-backend
-  _FRONTEND_SERVICE: donasi-panti-frontend
   _ARTIFACT_REGISTRY: asia-southeast2-docker.pkg.dev
   _REPO: donasi-panti
   _PROJECT_ID: $PROJECT_ID
@@ -38,29 +37,7 @@ steps:
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars NODE_ENV=production,GCP_PROJECT_ID=${_PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},CORS_ORIGIN=https://${_FRONTEND_SERVICE}-dot-${_PROJECT_ID}.et.r.appspot.com,DATABASE_URL=${_DATABASE_URL}
-
-        BACKEND_URL=$(gcloud run services describe ${_BACKEND_SERVICE} --region ${_REGION} --format='value(status.url)')
-        echo "$BACKEND_URL" > /workspace/backend_url.txt
-
-  - name: node:20
-    dir: frontend
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        npm install
-        VITE_API_BASE_URL=$(cat /workspace/backend_url.txt) npm run build
-
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    dir: frontend
-    entrypoint: gcloud
-    args:
-      - app
-      - deploy
-      - app.yaml
-      - --quiet
+          --set-env-vars NODE_ENV=production,GCP_PROJECT_ID=${_PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},CORS_ORIGIN=https://donasi-panti-frontend-dot-${_PROJECT_ID}.et.r.appspot.com,DATABASE_URL=${_DATABASE_URL}
 
 images:
   - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
