@@ -1,7 +1,7 @@
 substitutions:
-  _REGION: asia-southeast2
+  _REGION: us-central1
   _BACKEND_SERVICE: donasi-panti-backend
-  _ARTIFACT_REGISTRY: asia-southeast2-docker.pkg.dev
+  _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
   _REPO: donasi-panti
   _PROJECT_ID: $PROJECT_ID
   _GCS_BUCKET_NAME: projek-tcc-donasi-panti

@@ -1,5 +1,5 @@
 substitutions:
-  _REGION: asia-southeast2
+  _REGION: us-central1
   _FRONTEND_SERVICE: donasi-panti-frontend
   _BACKEND_URL: ''
 
