@@ -15,6 +15,7 @@ Repositori ini berisi aplikasi full-stack untuk sistem donasi panti asuhan.
 - `frontend/`: UI donatur dan pengurus
 - `database/schema.sql`: skema PostgreSQL
 - `cloudbuild.yaml`: contoh pipeline CI/CD
+ - `.devops/`: helper scripts to create Cloud Build triggers and setup secrets
 
 ## Catatan
 - Isi file `.env.example` di backend dan frontend sebelum menjalankan aplikasi.
@@ -48,3 +49,26 @@ gcloud builds submit \
 Catatan tambahan:
 - Backend Cloud Run memakai `NODE_ENV`, `GCP_PROJECT_ID`, `GCS_BUCKET_NAME`, `CORS_ORIGIN`, dan `DATABASE_URL` dari deploy Cloud Build.
 - Frontend App Engine memakai service `donasi-panti-frontend` dan server statis di `frontend/server.js`.
+
+### Membuat Cloud Build triggers & secrets
+
+Jika Anda ingin agar build berjalan otomatis dari GitHub, gunakan skrip di `.devops/` untuk membuat trigger dan menyiapkan Secret Manager.
+
+Contoh: buat trigger (GitHub) dan tambahkan secret `DATABASE_URL`:
+
+```bash
+# buat trigger (ganti PROJECT_ID dan REPO_NAME)
+./.devops/create_cloud_build_triggers.sh YOUR_GCP_PROJECT_ID YOUR_GITHUB_REPO_NAME
+
+# buat secret dan tambahkan versi (bash)
+./.devops/setup_secrets.sh YOUR_GCP_PROJECT_ID
+echo -n "postgresql://USER:PASSWORD@HOST:5432/donasi-panti" | \
+	gcloud secrets versions add DATABASE_URL --project=YOUR_GCP_PROJECT_ID --data-file=-
+```
+
+Catatan:
+- Trigger `donasi-backend-trigger` akan menjalankan `backend/cloudbuild.yaml` untuk perubahan pada `backend/**`.
+- Trigger `donasi-frontend-trigger` akan menjalankan `frontend/cloudbuild.yaml` untuk perubahan pada `frontend/**`.
+- Pastikan integrasi GitHub dengan Cloud Build sudah dikonfigurasi (Cloud Build GitHub App atau Cloud Source Repositories).
+
+Jika Anda ingin saya buat atau jalankan perintah `gcloud` untuk membuat trigger/secret, beri akses GCP atau jalankan perintah di mesin yang memiliki kredensial gcloud.
