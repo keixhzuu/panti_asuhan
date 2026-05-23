@@ -25,19 +25,19 @@ export default function AccessSelectPage() {
         <div className="flex-1 rounded-[2rem] bg-ink p-8 text-white shadow-glow lg:p-12">
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-200">Sistem Donasi Panti Asuhan</p>
           <h1 className="mt-4 max-w-2xl font-display text-4xl font-bold leading-tight lg:text-6xl">
-            Pilih akses sesuai peran: admin atau donatur.
+            Pilih akses sesuai yang dibutuhkan.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 lg:text-base">
-            Admin fokus ke operasional panti dan transparansi. Donatur fokus ke registrasi, donasi, dan pemantauan real-time.
+            Admin dapat mengakses operasional panti dan transparansi. Donatur dapat mengakses registrasi, donasi, dan pemantauan real-time.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm font-bold text-amber-200">Admin</p>
-              <p className="mt-2 text-sm text-slate-300">Dashboard, CRUD panti, kebutuhan, verifikasi, penyaluran, cerita, laporan.</p>
+              <p className="mt-2 text-sm text-slate-300">Dashboard, kelola data panti, kebutuhan, verifikasi, penyaluran, cerita, laporan.</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm font-bold text-teal-200">Donatur</p>
-              <p className="mt-2 text-sm text-slate-300">Registrasi, katalog realtime, donasi digital, riwayat, galeri, notifikasi.</p>
+              <p className="mt-2 text-sm text-slate-300">Registrasi, transparansi realtime, donasi digital, riwayat, galeri, notifikasi.</p>
             </div>
           </div>
         </div>

@@ -13,7 +13,7 @@ export default function DonaturGaleriPage() {
   }, []);
 
   return (
-    <PageShell title="Galeri Bukti" subtitle="Semua foto penyaluran dan bukti kegiatan yang tersimpan di Firestore dikumpulkan di sini.">
+    <PageShell title="Galeri Bukti" subtitle="Semua foto penyaluran dan bukti kegiatan dapat Anda pantau disini.">
       {/* Scope animations style block */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeIn {
@@ -35,7 +35,6 @@ export default function DonaturGaleriPage() {
       <Card>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold">Foto bukti</h2>
-          <Badge tone="sea">Realtime</Badge>
         </div>
         
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

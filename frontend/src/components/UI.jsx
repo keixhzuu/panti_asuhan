@@ -20,15 +20,17 @@ export function Card({ children, className = '' }) {
   return <div className={`rounded-3xl border border-white/70 bg-white/85 p-5 shadow-glow backdrop-blur ${className}`}>{children}</div>;
 }
 
-export function StatCard({ label, value, hint, tone = 'ember' }) {
+export function StatCard({ label, value, hint, tone = 'ember', className = '' }) {
   const toneClass = tone === 'sea' ? 'text-sea' : tone === 'moss' ? 'text-moss' : 'text-ember';
   const glowClass = tone === 'sea' ? 'bg-teal-100/70' : tone === 'moss' ? 'bg-emerald-100/70' : 'bg-amber-100/70';
   return (
-    <Card className="relative overflow-hidden">
+    <Card className={`relative overflow-hidden min-w-0 ${className}`}>
       <div className={`absolute inset-y-0 right-0 w-24 ${glowClass} z-0`} />
-      <div className="relative z-10">
+      <div className="relative z-10 min-w-0">
         <p className="text-sm text-slate-500">{label}</p>
-        <div className={`mt-3 text-3xl font-extrabold ${toneClass}`}>{value}</div>
+        <div className={`mt-3 break-words text-2xl font-extrabold tabular-nums leading-tight tracking-tight sm:text-3xl lg:text-[1.7rem] ${toneClass}`}>
+          {value}
+        </div>
         {hint ? <p className="mt-2 text-xs text-slate-500">{hint}</p> : null}
       </div>
     </Card>

@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const pool = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
@@ -30,13 +28,9 @@ const createOne = asyncHandler(async (req, res) => {
 
   let buktiUrl = null;
 
-  if (req.file) {
-    const uploaded = await uploadBufferToStorage(req.file, 'bukti-penyaluran');
-    buktiUrl = uploaded?.url || null;
-  }
-
   const client = await pool.connect();
   const createdPenyalurans = [];
+  let clientReleased = false;
 
   try {
     await client.query('BEGIN');
@@ -51,30 +45,52 @@ const createOne = asyncHandler(async (req, res) => {
 
       const penyaluran = result.rows[0];
       createdPenyalurans.push(penyaluran);
-
-      if (buktiUrl) {
-        await logBuktiFoto({
-          id_penyaluran: penyaluran.id,
-          id_panti: Number(id_panti),
-          url: buktiUrl,
-          deskripsi: deskripsi_penggunaan || 'Bukti penyaluran dana',
-          tipe: 'penyaluran_dana'
-        });
-      }
-
-      await logTransparansiTimeline({
-        id_penyaluran: penyaluran.id,
-        id_donasi: Number(donation.id),
-        id_panti: Number(id_panti),
-        jumlah_disalurkan: Number(donation.nominal),
-        tanggal_salur,
-        deskripsi_penggunaan: deskripsi_penggunaan || null,
-        bukti_url: buktiUrl,
-        tipe: 'penyaluran_dana'
-      });
     }
 
     await client.query('COMMIT');
+    client.release();
+    clientReleased = true;
+
+    void (async () => {
+      try {
+        if (req.file) {
+          const uploaded = await uploadBufferToStorage(req.file, 'bukti-penyaluran');
+          buktiUrl = uploaded?.url || null;
+
+          if (buktiUrl) {
+            await Promise.all(createdPenyalurans.map((penyaluran) => pool.query(
+              'UPDATE penyaluran_dana SET bukti_url = $1 WHERE id = $2',
+              [buktiUrl, penyaluran.id]
+            )));
+          }
+        }
+
+        await Promise.allSettled(createdPenyalurans.map((penyaluran) => Promise.resolve().then(async () => {
+          if (buktiUrl) {
+            await logBuktiFoto({
+              id_penyaluran: penyaluran.id,
+              id_panti: Number(id_panti),
+              url: buktiUrl,
+              deskripsi: deskripsi_penggunaan || 'Bukti penyaluran dana',
+              tipe: 'penyaluran_dana'
+            });
+          }
+
+          await logTransparansiTimeline({
+            id_penyaluran: penyaluran.id,
+            id_donasi: Number(penyaluran.id_donasi),
+            id_panti: Number(id_panti),
+            jumlah_disalurkan: Number(penyaluran.jumlah_disalurkan),
+            tanggal_salur,
+            deskripsi_penggunaan: deskripsi_penggunaan || null,
+            bukti_url: buktiUrl,
+            tipe: 'penyaluran_dana'
+          });
+        })));
+      } catch (postCommitError) {
+        console.warn('Post-commit penyaluran sync failed, SQL row is already saved:', postCommitError.message || postCommitError);
+      }
+    })();
 
     return sendSuccess(res, 'Penyaluran dana berhasil dibuat.', {
       penyaluran_count: createdPenyalurans.length,
@@ -85,7 +101,9 @@ const createOne = asyncHandler(async (req, res) => {
     await client.query('ROLLBACK');
     throw error;
   } finally {
-    client.release();
+    if (!clientReleased) {
+      client.release();
+    }
   }
 });
 

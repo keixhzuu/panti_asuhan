@@ -301,8 +301,8 @@ const requestRefund = asyncHandler(async (req, res) => {
   await logDonationNotification({
     id_donatur: idDonatur,
     id_donasi: updatedDonation.id,
-    judul: 'Refund Diajukan',
-    pesan: `Pengajuan refund untuk donasi ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} sedang diproses.`,
+    judul: 'Anda berhasil ajukan refund',
+    pesan: `Pengajuan refund untuk donasi ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} berhasil dikirim dan sedang diproses.`,
     status: 'refund_diajukan',
     email_donatur: donorInfo.rows[0]?.email || null
   });

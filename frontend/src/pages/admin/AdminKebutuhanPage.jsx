@@ -61,7 +61,7 @@ export default function AdminKebutuhanPage() {
   };
 
   return (
-    <PageShell title="Manajemen Kebutuhan" subtitle="CRUD kebutuhan logistik dan sinkronisasi realtime ke Firestore collection update_kebutuhan_realtime.">
+    <PageShell title="Manajemen Kebutuhan" subtitle="Tambahkan kebutuhan logistik untuk panti asuhan dan kelola kebutuhan yang sudah ada.">
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <Card>
           <h2 className="font-display text-2xl font-bold">{editingId ? 'Edit kebutuhan' : 'Tambah kebutuhan'}</h2>
@@ -80,7 +80,7 @@ export default function AdminKebutuhanPage() {
             </SelectField>
             <SelectField value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}>
               <option value="aktif">Aktif</option>
-              <option value="selesai">Selesai</option>
+              {editingId ? <option value="selesai">Selesai</option> : null}
             </SelectField>
             <div className="flex gap-3">
               <Button type="submit">Simpan</Button>
@@ -91,7 +91,6 @@ export default function AdminKebutuhanPage() {
         <Card>
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-bold">Daftar kebutuhan</h2>
-            <Badge tone="sea">Sinkron realtime aktif</Badge>
           </div>
           <div className="mt-4 grid gap-3">
             {items.map((item) => (

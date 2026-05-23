@@ -49,6 +49,31 @@ const dashboard = asyncHandler(async (req, res) => {
   });
 });
 
+const markNotificationRead = asyncHandler(async (req, res) => {
+  const { admin } = require('../config/firebaseAdmin');
+  const { firebaseEnabled, firestore } = require('../config/firebaseAdmin');
+
+  if (!firebaseEnabled || !firestore) {
+    return res.status(501).json({ message: 'Firestore not enabled in this environment.' });
+  }
+
+  const id = req.params.id;
+  try {
+    const docRef = firestore.collection('notifikasi_admin').doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ message: 'Notifikasi tidak ditemukan.' });
+    }
+
+    await docRef.update({ is_read: true, read_at: require('../config/firebaseAdmin').fieldValue.serverTimestamp() });
+    return sendSuccess(res, 'Notifikasi ditandai sudah dibaca.');
+  } catch (err) {
+    console.warn('Failed to mark notification read:', err.message || err);
+    return res.status(500).json({ message: 'Gagal menandai notifikasi.' });
+  }
+});
+
 module.exports = {
   dashboard
+  , markNotificationRead
 };

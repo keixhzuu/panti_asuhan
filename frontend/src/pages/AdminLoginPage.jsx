@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
           <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Masuk untuk mengelola panti dan transparansi donasi.</h2>
         </div>
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <p className="text-sm text-slate-300">Fokus admin: dashboard, CRUD kebutuhan/panti, verifikasi, penyaluran, cerita, laporan.</p>
+          <p className="text-sm text-slate-300">Platform untuk mengelola segala hal yang berhubungan dengan donasi panti asuhan Anda.</p>
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.35em] text-ember/70">Login Admin</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-ink">Masuk sebagai pengurus</h1>
-            <p className="mt-2 text-sm text-slate-600">Gunakan akun role <span className="font-semibold">pengurus</span>.</p>
+            <p className="mt-2 text-sm text-slate-600">Gunakan akun untuk <span className="font-semibold">pengurus</span>.</p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <TextField type="email" placeholder="Email admin" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />

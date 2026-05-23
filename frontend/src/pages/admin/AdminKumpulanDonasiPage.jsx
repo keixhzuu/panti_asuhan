@@ -39,11 +39,12 @@ export default function AdminKumpulanDonasiPage() {
     .reduce((sum, d) => sum + Number(d.jumlah_donasi || 0), 0);
 
   const ditolakCount = donations.filter((d) => d.status === 'ditolak').length;
+  const pengajuanRefundCount = donations.filter((d) => d.status === 'refund_diajukan').length;
 
-  // Filter donations list (only verified or ditolak are allowed on this page)
+  // Filter donations list (verified, rejected, and refund submissions)
   const filteredDonations = donations.filter((d) => {
-    const isVerifiedOrRejected = d.status === 'verifikasi' || d.status === 'ditolak';
-    if (!isVerifiedOrRejected) return false;
+    const isVisibleStatus = d.status === 'verifikasi' || d.status === 'ditolak' || d.status === 'refund_diajukan';
+    if (!isVisibleStatus) return false;
 
     const matchesSearch =
       d.nama_donatur?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,6 +63,8 @@ export default function AdminKumpulanDonasiPage() {
         return <Badge tone="moss">Terverifikasi</Badge>;
       case 'ditolak':
         return <Badge tone="red">Ditolak</Badge>;
+      case 'refund_diajukan':
+        return <Badge tone="ember">Pengajuan Refund</Badge>;
       default:
         return <Badge tone="neutral">{status}</Badge>;
     }
@@ -70,10 +73,10 @@ export default function AdminKumpulanDonasiPage() {
   return (
     <PageShell
       title="Kumpulan Donasi"
-      subtitle="Pantau dan tinjau seluruh riwayat transaksi donasi logistik yang telah diproses (terverifikasi atau ditolak)."
+      subtitle="Pantau dan tinjau seluruh riwayat transaksi donasi logistik: terverifikasi, ditolak, dan pengajuan refund."
     >
       {/* Dynamic Statistics cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <StatCard
           label="Total Dana Terkumpul"
           value={formatCurrency(totalUangTerkumpul)}
@@ -91,6 +94,12 @@ export default function AdminKumpulanDonasiPage() {
           value={`${ditolakCount} donasi`}
           tone="red"
           hint="Pembayaran tidak valid / ditolak"
+        />
+        <StatCard
+          label="Pengajuan Refund"
+          value={`${pengajuanRefundCount} donasi`}
+          tone="ember"
+          hint="Menunggu proses refund"
         />
       </div>
 
@@ -112,6 +121,7 @@ export default function AdminKumpulanDonasiPage() {
               <option value="semua">Semua Status</option>
               <option value="verifikasi">Terverifikasi</option>
               <option value="ditolak">Ditolak</option>
+              <option value="refund_diajukan">Pengajuan Refund</option>
             </SelectField>
           </div>
         </div>

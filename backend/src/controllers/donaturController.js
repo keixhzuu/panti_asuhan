@@ -123,14 +123,14 @@ const getNotifikasi = asyncHandler(async (req, res) => {
       CASE
         WHEN dn.status = 'verifikasi' THEN 'Donasi diverifikasi'
         WHEN dn.status = 'ditolak' THEN 'Donasi ditolak'
-        WHEN dn.status = 'refund_diajukan' THEN 'Refund diajukan'
+        WHEN dn.status = 'refund_diajukan' THEN 'Anda berhasil ajukan refund'
         WHEN dn.status = 'refund_disetujui' THEN 'Refund disetujui'
         ELSE 'Donasi menunggu verifikasi'
       END AS judul,
       CASE
         WHEN dn.status = 'verifikasi' THEN CONCAT('Donasi untuk ', k.nama_barang, ' telah diverifikasi.')
         WHEN dn.status = 'ditolak' THEN CONCAT('Donasi untuk ', k.nama_barang, ' ditolak.', CASE WHEN dn.alasan_ditolak IS NOT NULL THEN CONCAT(' Alasan: ', dn.alasan_ditolak) ELSE '' END)
-        WHEN dn.status = 'refund_diajukan' THEN CONCAT('Pengajuan refund untuk ', k.nama_barang, ' sedang diproses.')
+        WHEN dn.status = 'refund_diajukan' THEN CONCAT('Pengajuan refund untuk ', k.nama_barang, ' berhasil dikirim dan sedang diproses.')
         WHEN dn.status = 'refund_disetujui' THEN CONCAT('Pengajuan refund untuk ', k.nama_barang, ' telah disetujui.')
         ELSE CONCAT('Donasi untuk ', k.nama_barang, ' masih menunggu verifikasi.')
       END AS pesan

@@ -14,11 +14,10 @@ export default function DonaturNotifikasiPage() {
   }, [user?.id_donatur]);
 
   return (
-    <PageShell title="Notifikasi Donatur" subtitle="Notifikasi diambil dari PostgreSQL berdasarkan akun donatur aktif.">
+    <PageShell title="Notifikasi Donatur" subtitle="Lihat notifikasi Anda disini.">
       <Card>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold">Kotak notifikasi</h2>
-          <Badge tone="ember">Live DB</Badge>
         </div>
         <div className="mt-4 space-y-3">
           {items.map((item) => (

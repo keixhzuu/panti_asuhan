@@ -54,7 +54,6 @@ export default function DonaturTrackingPage() {
               Tren dana masuk &amp; keluar 30 hari terakhir, serta distribusi penyaluran per kategori barang.
             </p>
           </div>
-          <Badge tone="sea">Realtime</Badge>
         </div>
 
         {/* Line Chart */}

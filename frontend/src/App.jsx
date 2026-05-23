@@ -20,6 +20,7 @@ import DonaturGaleriPage from './pages/donatur/DonaturGaleriPage';
 import DonaturRiwayatPage from './pages/donatur/DonaturRiwayatPage';
 import DonaturNotifikasiPage from './pages/donatur/DonaturNotifikasiPage';
 import DonaturProfilePage from './pages/donatur/DonaturProfilePage';
+import DonaturCeritaDetailPage from './pages/donatur/DonaturCeritaDetailPage';
 import AdminTambahPantiPage from './pages/admin/AdminTambahPantiPage';
 
 function RootRedirect() {
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/donatur/tracking" element={<DonaturTrackingPage />} />
           <Route path="/donatur/galeri" element={<DonaturGaleriPage />} />
           <Route path="/donatur/riwayat" element={<DonaturRiwayatPage />} />
+          <Route path="/donatur/cerita/:id" element={<DonaturCeritaDetailPage />} />
           <Route path="/donatur/notifikasi" element={<DonaturNotifikasiPage />} />
           <Route path="/donatur/profil" element={<DonaturProfilePage />} />
         </Route>

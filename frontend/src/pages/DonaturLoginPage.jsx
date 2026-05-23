@@ -34,10 +34,10 @@ export default function DonaturLoginPage() {
       <div className="hidden flex-col justify-between bg-sea px-10 py-12 text-white lg:flex">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-200">Akses Donatur</p>
-          <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Masuk untuk melihat katalog realtime dan riwayat donasi.</h2>
+          <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Masuk untuk melihat transparansi realtime dan riwayat donasi.</h2>
         </div>
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <p className="text-sm text-teal-50/90">Fokus donatur: registrasi, login, donasi digital, tracking aliran dana, galeri, dan notifikasi realtime.</p>
+          <p className="text-sm text-teal-50/90">Aplikasi untuk memantau pergerakan uang donasi Anda.</p>
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export default function DonaturLoginPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.35em] text-sea/70">Login Donatur</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-ink">Masuk sebagai donatur</h1>
-            <p className="mt-2 text-sm text-slate-600">Gunakan akun role <span className="font-semibold">donatur</span>.</p>
+            <p className="mt-2 text-sm text-slate-600">Gunakan akun untuk <span className="font-semibold">donatur</span>.</p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <TextField type="email" placeholder="Email donatur" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />

@@ -30,7 +30,7 @@ export default function AdminVerifikasiDonasiPage() {
   };
 
   return (
-    <PageShell title="Verifikasi Donasi" subtitle="Daftar donasi pending, ubah status menjadi verifikasi atau ditolak, lalu sistem akan mengirim notifikasi ke donatur terkait.">
+    <PageShell title="Verifikasi Donasi" subtitle="Kelola dan verifikasi donasi yang masuk.">
       <div className="grid gap-4">
         {items.map((item) => (
           <Card key={item.id}>

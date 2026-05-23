@@ -32,7 +32,7 @@ export default function LoginPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.35em] text-ember/70">Akses Sistem</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-ink">Masuk ke dashboard</h1>
-            <p className="mt-2 text-sm text-slate-600">Gunakan akun pengurus atau donatur untuk melihat fitur sesuai role.</p>
+            <p className="mt-2 text-sm text-slate-600">Gunakan akun yang sesuai untuk melihat fitur yang diinginkan.</p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <TextField type="email" placeholder="Email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
@@ -46,7 +46,7 @@ export default function LoginPage() {
       <div className="hidden flex-col justify-between bg-ink px-10 py-12 text-white lg:flex">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-300">Transparansi Donasi</p>
-          <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Satu dashboard untuk kebutuhan, donasi, penyaluran, dan cerita panti.</h2>
+          <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Satu dashboard untuk kebutuhan, transparansi, dan cerita panti.</h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {[

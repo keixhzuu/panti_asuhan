@@ -17,6 +17,7 @@ export default function AdminPenyaluranPage() {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -64,6 +65,8 @@ export default function AdminPenyaluranPage() {
       return;
     }
 
+    setLoading(true);
+
     const payload = new FormData();
     Object.entries(form).forEach(([key, value]) => payload.append(key, value));
     if (file) payload.append('foto_bukti', file);
@@ -77,6 +80,9 @@ export default function AdminPenyaluranPage() {
     } catch (submitError) {
       const responseMessage = submitError.response?.data?.message;
       setError(responseMessage || submitError.message || 'Gagal menyimpan penyaluran.');
+    }
+    finally {
+      setLoading(false);
     }
   };
 
@@ -141,14 +147,25 @@ export default function AdminPenyaluranPage() {
 
             {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 font-medium">{error}</p> : null}
             {message ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 font-medium">{message}</p> : null}
-            <Button type="submit" className="w-full">Simpan Penyaluran</Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a12 12 0 00-8 11h4z"></path>
+                  </svg>
+                  Mengirim...
+                </span>
+              ) : (
+                'Simpan Penyaluran'
+              )}
+            </Button>
           </form>
         </Card>
 
         <Card>
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-bold">Kategori siap disalurkan</h2>
-            <Badge tone="sea">Live DB</Badge>
           </div>
           <div className="mt-4 space-y-3">
             {readyCategories.map((item) => (

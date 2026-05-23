@@ -33,7 +33,7 @@ export default function RegisterPage() {
           <h2 className="mt-4 max-w-xl font-display text-5xl font-bold leading-tight">Daftar, pilih kebutuhan, lalu pantau aliran dana secara realtime.</h2>
         </div>
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <p className="text-sm text-teal-50/90">Setelah registrasi, donatur bisa melihat katalog Firestore, mengirim donasi digital, dan memantau notifikasi verifikasi secara langsung.</p>
+          <p className="text-sm text-teal-50/90">Silahkan daftar terlebih dulu untuk mengakses semua fitur dari platform ini.</p>
         </div>
       </div>
       <div className="flex items-center justify-center px-6 py-12">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { Button, Card, PageShell } from '../../components/UI';
+import { useToast } from '../../components/ToastProvider';
 import { formatCurrency } from '../../utils/format';
 
 export default function AdminDonationReviewPage() {
@@ -11,6 +12,7 @@ export default function AdminDonationReviewPage() {
   const [alasanDitolak, setAlasanDitolak] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const { queueToast } = useToast();
 
   const load = async () => {
     const res = await api.get(`/donasi/${id}`);
@@ -29,9 +31,15 @@ export default function AdminDonationReviewPage() {
     setIsVerifying(true);
     try {
       await api.put(`/donasi/${id}/verify`, { status, alasan_ditolak: reason });
-      window.location.href = '/admin/verifikasi-donasi';
+      queueToast({
+        title: status === 'verifikasi' ? 'Donasi Diverifikasi' : 'Donasi Ditolak',
+        message: status === 'verifikasi' ? 'Donasi telah berhasil diverifikasi.' : 'Donasi ditolak dan donatur diberitahu.',
+        tone: 'success',
+        duration: 5000,
+      });
+      navigate('/admin/verifikasi-donasi');
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal memproses verifikasi.');
+      queueToast({ title: 'Gagal', message: err.response?.data?.message || 'Gagal memproses verifikasi.', tone: 'danger', duration: 5000 });
       setIsVerifying(false);
     }
   };

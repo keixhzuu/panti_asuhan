@@ -32,6 +32,15 @@ async function logDonationNotification(notification) {
   }));
 }
 
+async function logAdminNotification(notification) {
+  if (!ensureEnabled()) return null;
+  return safeFirestoreWrite(() => firestore.collection('notifikasi_admin').add({
+    ...notification,
+    is_read: false,
+    created_at: fieldValue.serverTimestamp()
+  }));
+}
+
 async function logTransparansiTimeline(entry) {
   if (!ensureEnabled()) return null;
   return safeFirestoreWrite(() => firestore.collection('transparansi_timeline').add({
@@ -85,6 +94,7 @@ async function listNotificationsByDonatur(idDonatur) {
 module.exports = {
   syncKebutuhanRealtime,
   logDonationNotification,
+  logAdminNotification,
   logTransparansiTimeline,
   logBuktiFoto,
   logCeritaAktivitas,

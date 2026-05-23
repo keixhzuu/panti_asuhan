@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
-import { Badge, Card, PageShell } from '../../components/UI';
+import { Badge, Button, Card, PageShell } from '../../components/UI';
 import { formatCurrency } from '../../utils/format';
+import { useToast } from '../../components/ToastProvider';
 
 export default function DonaturRiwayatPage() {
   const [items, setItems] = useState([]);
+  const [refundTargetId, setRefundTargetId] = useState(null);
+  const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
+  const { addToast, queueToast } = useToast();
 
   const loadData = () => {
     api.get('/donatur/riwayat')
@@ -16,16 +20,28 @@ export default function DonaturRiwayatPage() {
     loadData();
   }, []);
 
-  const handleRefund = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin mengajukan refund untuk donasi ini?')) {
-      return;
-    }
+  const handleRefundConfirm = async () => {
+    if (!refundTargetId || isSubmittingRefund) return;
+    setIsSubmittingRefund(true);
     try {
-      await api.put(`/donasi/${id}/refund`);
-      loadData();
-      alert('Pengajuan refund berhasil dikirim.');
+      await api.put(`/donasi/${refundTargetId}/refund`);
+      setRefundTargetId(null);
+      queueToast({
+        title: 'Refund Berhasil Diajukan',
+        message: 'Status donasi berubah menjadi Pengajuan Refund.',
+        tone: 'success',
+        duration: 5000
+      });
+      // Force redirect + reload to ensure data/status refreshes immediately.
+      window.location.replace(`/donatur/riwayat?refund=ok&t=${Date.now()}`);
     } catch (error) {
-      alert(error?.response?.data?.message || 'Gagal mengajukan refund. Silakan coba lagi.');
+      addToast({
+        title: 'Gagal',
+        message: error?.response?.data?.message || 'Gagal mengajukan refund. Silakan coba lagi.',
+        tone: 'danger',
+        duration: 5000
+      });
+      setIsSubmittingRefund(false);
     }
   };
 
@@ -38,7 +54,7 @@ export default function DonaturRiwayatPage() {
       case 'ditolak':
         return <Badge tone="red">Ditolak</Badge>;
       case 'refund_diajukan':
-        return <Badge tone="ember">Refund Diajukan</Badge>;
+        return <Badge tone="ember">Pengajuan Refund</Badge>;
       case 'refund_disetujui':
         return <Badge tone="moss">Refund Selesai</Badge>;
       default:
@@ -47,7 +63,7 @@ export default function DonaturRiwayatPage() {
   };
 
   return (
-    <PageShell title="Riwayat Donasi" subtitle="Lihat seluruh donasi pribadi yang tersimpan di PostgreSQL berdasarkan akun donatur aktif.">
+    <PageShell title="Riwayat Donasi" subtitle="Lihat seluruh donasi pribadi dan pantau status donasi Anda.">
       <Card>
         <div className="space-y-3">
           {items.map((item) => (
@@ -73,7 +89,7 @@ export default function DonaturRiwayatPage() {
                   )}
                   {item.status === 'ditolak' && (
                     <button
-                      onClick={() => handleRefund(item.id)}
+                      onClick={() => setRefundTargetId(item.id)}
                       className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700 focus:outline-none shadow-sm hover:shadow"
                     >
                       Ajukan Refund
@@ -85,6 +101,33 @@ export default function DonaturRiwayatPage() {
           ))}
         </div>
       </Card>
+
+      {refundTargetId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900">Ajukan Refund</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Apakah Anda yakin ingin mengajukan refund untuk donasi ini? Status akan diubah menjadi <span className="font-semibold">Pengajuan Refund</span>.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setRefundTargetId(null)}
+                disabled={isSubmittingRefund}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleRefundConfirm}
+                disabled={isSubmittingRefund}
+              >
+                {isSubmittingRefund ? 'Memproses...' : 'Ya, Ajukan Refund'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PageShell>
   );
 }

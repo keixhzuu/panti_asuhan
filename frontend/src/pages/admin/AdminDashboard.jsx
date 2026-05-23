@@ -29,7 +29,8 @@ export default function AdminDashboard() {
           const createdB = new Date(b.created_at || 0).getTime();
           return createdB - createdA;
         });
-        setRecentNeeds(sortedNeeds.slice(0, 5));
+        const openNeeds = sortedNeeds.filter((item) => Number(item.sisa_kebutuhan_terverifikasi ?? item.jumlah_dibutuhkan ?? 0) > 0);
+        setRecentNeeds(openNeeds.slice(0, 5));
         setRecentDonations(donationResponse.data.data.slice(0, 5));
         setKategoriData(kategoriResponse.data.data);
       })
@@ -112,7 +113,7 @@ export default function AdminDashboard() {
   return (
     <PageShell
       title="Dashboard Admin"
-      subtitle="Pantau donasi masuk, kebutuhan aktif, jumlah donatur, dan kebutuhan yang sudah terpenuhi dalam satu tampilan."
+      subtitle="Pantau donasi masuk, kebutuhan aktif, jumlah donatur, dan kebutuhan yang terpenuhi dalam satu platform."
       actions={[
         <Button key="tambah-panti" as={Link} to="/admin/tambah-panti" variant="soft">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-1.5">
@@ -122,19 +123,18 @@ export default function AdminDashboard() {
         </Button>
       ]}
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Total Donasi Masuk" value={formatCurrency(stats?.total_donasi_masuk)} tone="ember" />
-        <StatCard label="Kebutuhan Aktif" value={stats?.jumlah_kebutuhan_aktif ?? 0} tone="sea" />
-        <StatCard label="Jumlah Donatur" value={stats?.total_donatur ?? 0} tone="moss" />
-        <StatCard label="Kebutuhan Terpenuhi" value={stats?.kebutuhan_terpenuhi ?? 0} tone="ember" />
-        <StatCard label="Total Penyaluran" value={formatCurrency(stats?.total_penyaluran)} tone="sea" />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <StatCard label="Total Donasi Masuk" value={formatCurrency(stats?.total_donasi_masuk)} tone="ember" className="xl:col-span-2" />
+        <StatCard label="Kebutuhan Aktif" value={stats?.jumlah_kebutuhan_aktif ?? 0} tone="sea" className="xl:col-span-1" />
+        <StatCard label="Jumlah Donatur" value={stats?.total_donatur ?? 0} tone="moss" className="xl:col-span-1" />
+        <StatCard label="Kebutuhan Terpenuhi" value={stats?.kebutuhan_terpenuhi ?? 0} tone="ember" className="xl:col-span-1" />
+        <StatCard label="Total Penyaluran" value={formatCurrency(stats?.total_penyaluran)} tone="sea" className="xl:col-span-2" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-bold">Kebutuhan terbaru</h2>
-            <Badge tone="sea">Realtime SQL + Firestore</Badge>
           </div>
           <div className="mt-4 space-y-3">
             {recentNeeds.map((item) => (
@@ -154,7 +154,6 @@ export default function AdminDashboard() {
         <Card>
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-bold">Donasi pending</h2>
-            <Badge tone="ember">Perlu verifikasi</Badge>
           </div>
           <div className="mt-4 space-y-3">
             {recentDonations.map((item) => (
@@ -196,10 +195,10 @@ export default function AdminDashboard() {
         </div>
 
         <div>
-          <Card className="h-full">
+          <Card className="h-full flex flex-col">
             <h2 className="font-display text-2xl font-bold">Laporan Transparansi Bulanan</h2>
             <p className="text-sm text-slate-500 mt-1">Unduh laporan keuangan transparansi (uang masuk & keluar) per bulan.</p>
-            <div className="mt-6 divide-y divide-slate-100 max-h-[300px] overflow-y-auto pr-2">
+            <div className="mt-6 divide-y divide-slate-100 pr-2 overflow-auto min-h-0">
               {generateMonthsList().map((item) => (
                 <div key={item.value} className="flex items-center justify-between py-3 gap-2">
                   <span className="font-medium text-ink text-sm sm:text-base">{item.label}</span>

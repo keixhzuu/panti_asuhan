@@ -1,19 +1,8 @@
 require('dotenv').config();
-
 const pool = require('../src/config/db');
 
 async function main() {
   await pool.query(`ALTER TABLE donasi DROP CONSTRAINT IF EXISTS donasi_status_check`);
-
-  await pool.query(`
-    UPDATE donasi
-    SET status = CASE
-      WHEN status IN ('terverifikasi', 'diterima') THEN 'verifikasi'
-      WHEN status = 'pending' THEN 'pending'
-      ELSE status
-    END
-    WHERE status IN ('terverifikasi', 'diterima')
-  `);
 
   await pool.query(`
     ALTER TABLE donasi
@@ -21,12 +10,12 @@ async function main() {
     CHECK (status IN ('pending', 'verifikasi', 'ditolak', 'refund_diajukan', 'refund_disetujui'))
   `);
 
-  console.log('Status donasi berhasil dimigrasikan ke pending/verifikasi/ditolak/refund_diajukan/refund_disetujui.');
+  console.log('✅ donasi_status_check updated to include refund statuses.');
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('Migrasi status donasi gagal:', error.message || error);
+    console.error('❌ Failed to update donasi_status_check:', error.message || error);
     process.exit(1);
   });

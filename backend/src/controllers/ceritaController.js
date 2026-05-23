@@ -4,6 +4,29 @@ const { sendSuccess } = require('../utils/response');
 const { uploadBufferToStorage } = require('../utils/storage');
 const { logCeritaAktivitas } = require('../utils/firestore');
 
+function extractCeritaFiles(req) {
+  if (Array.isArray(req.files) && req.files.length > 0) {
+    return req.files.filter((file) => file.fieldname === 'foto' || file.fieldname === 'fotos');
+  }
+
+  if (req.file) {
+    return [req.file];
+  }
+
+  return [];
+}
+
+async function uploadCeritaPhotos(files) {
+  const uploaded = [];
+  for (const file of files) {
+    const result = await uploadBufferToStorage(file, 'cerita-aktivitas');
+    if (result?.url) {
+      uploaded.push(result.url);
+    }
+  }
+  return uploaded;
+}
+
 const getAll = asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT c.*, p.nama_panti
@@ -37,17 +60,16 @@ const createOne = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Panti, judul, dan konten wajib diisi.' });
   }
 
-  let fotoUrl = null;
-  if (req.file) {
-    const uploaded = await uploadBufferToStorage(req.file, 'cerita-aktivitas');
-    fotoUrl = uploaded?.url || null;
-  }
+  const uploadedFiles = extractCeritaFiles(req);
+  const fotoUrls = await uploadCeritaPhotos(uploadedFiles);
+  const fotoUrl = fotoUrls[0] || null;
+  const fotoUrlsJson = fotoUrls.length > 0 ? JSON.stringify(fotoUrls) : null;
 
   const result = await pool.query(
-    `INSERT INTO cerita_aktivitas (id_panti, judul, konten, foto_url)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO cerita_aktivitas (id_panti, judul, konten, foto_url, foto_urls)
+     VALUES ($1, $2, $3, $4, $5::jsonb)
      RETURNING *`,
-    [id_panti, judul, konten, fotoUrl]
+    [id_panti, judul, konten, fotoUrl, fotoUrlsJson]
   );
 
   await logCeritaAktivitas({
@@ -64,21 +86,21 @@ const createOne = asyncHandler(async (req, res) => {
 
 const updateOne = asyncHandler(async (req, res) => {
   const { id_panti, judul, konten } = req.body;
-  let fotoUrl = null;
-  if (req.file) {
-    const uploaded = await uploadBufferToStorage(req.file, 'cerita-aktivitas');
-    fotoUrl = uploaded?.url || null;
-  }
+  const uploadedFiles = extractCeritaFiles(req);
+  const fotoUrls = await uploadCeritaPhotos(uploadedFiles);
+  const fotoUrl = fotoUrls[0] || null;
+  const fotoUrlsJson = fotoUrls.length > 0 ? JSON.stringify(fotoUrls) : null;
 
   const result = await pool.query(
     `UPDATE cerita_aktivitas
      SET id_panti = COALESCE($1, id_panti),
          judul = COALESCE($2, judul),
          konten = COALESCE($3, konten),
-         foto_url = COALESCE($4, foto_url)
-     WHERE id = $5
+         foto_url = COALESCE($4, foto_url),
+         foto_urls = COALESCE($5::jsonb, foto_urls)
+     WHERE id = $6
      RETURNING *`,
-    [id_panti || null, judul || null, konten || null, fotoUrl, req.params.id]
+    [id_panti || null, judul || null, konten || null, fotoUrl, fotoUrlsJson, req.params.id]
   );
 
   if (result.rowCount === 0) {

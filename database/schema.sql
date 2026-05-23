@@ -50,7 +50,7 @@ CREATE TABLE donasi (
     nominal DECIMAL(15,2) NOT NULL,
     metode_bayar VARCHAR(50),
     bukti_transfer_url TEXT,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'verifikasi', 'ditolak')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'verifikasi', 'ditolak', 'refund_diajukan', 'refund_disetujui')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

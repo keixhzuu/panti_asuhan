@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { Badge, Button, Card, PageShell, SelectField, TextAreaField, TextField } from '../../components/UI';
 import { formatCurrency } from '../../utils/format';
+import { useToast } from '../../components/ToastProvider';
 
 const emptyForm = { id_kebutuhan: '', jumlah_donasi: '', metode_bayar: 'Transfer Bank', catatan: '' };
 
@@ -20,6 +21,7 @@ export default function DonaturDonasiPage() {
   const [copiedText, setCopiedText] = useState('');
   const [activeGuideTab, setActiveGuideTab] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const { queueToast } = useToast();
 
   const selectedNeed = needs.find((item) => String(item.id) === String(form.id_kebutuhan));
   const sisaDonasi = Number(selectedNeed?.sisa_donasi || 0);
@@ -113,11 +115,12 @@ export default function DonaturDonasiPage() {
 
     try {
       await api.post('/donasi', payload);
+      queueToast({ title: 'Donasi Terkirim', message: 'Terima kasih! Donasi Anda berhasil dikirim.', tone: 'success', duration: 5000 });
       setSubmitState('redirecting');
-      await new Promise((resolve) => setTimeout(resolve, 900));
       navigate('/donatur/riwayat');
     } catch (error) {
       setSubmitError(error?.response?.data?.message || 'Donasi gagal dikirim. Coba lagi.');
+      queueToast({ title: 'Gagal', message: error?.response?.data?.message || 'Donasi gagal dikirim.', tone: 'danger', duration: 5000 });
       setSubmitState('idle');
     }
   };
@@ -127,13 +130,12 @@ export default function DonaturDonasiPage() {
   };
 
   return (
-    <PageShell title="Donasi Kebutuhan" subtitle="Data kebutuhan diambil dari PostgreSQL dan menampilkan daftar aktif dari panti.">
+    <PageShell title="Donasi Kebutuhan" subtitle="Pilih kebutuhan yang ingin didonasikan dan pantau status donasi Anda secara realtime. Terima kasih atas kebaikan hati Anda!">
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {/* Left column: Needs List */}
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-bold text-slate-800">Daftar Kebutuhan</h2>
-            <Badge tone="sea">Live DB</Badge>
           </div>
           <div className="mt-4 grid max-h-[70vh] gap-3 overflow-y-auto pr-2">
             {needs.map((item) => (

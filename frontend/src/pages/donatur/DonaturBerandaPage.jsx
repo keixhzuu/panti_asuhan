@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
-import { Badge, Button, Card, PageShell } from '../../components/UI';
+import { Button, Card, PageShell } from '../../components/UI';
 
 export default function DonaturBerandaPage() {
   const [stories, setStories] = useState([]);
   const [pantis, setPantis] = useState([]);
   const [selectedPanti, setSelectedPanti] = useState(null);
+  const [pantiStart, setPantiStart] = useState(0);
+  const [storyStart, setStoryStart] = useState(0);
+
+  const visibleCount = 3;
+
+  const maxPantiStart = Math.max(0, pantis.length - visibleCount);
+  const maxStoryStart = Math.max(0, stories.length - visibleCount);
+
+  const visiblePantis = pantis.slice(pantiStart, pantiStart + visibleCount);
+  const visibleStories = stories.slice(storyStart, storyStart + visibleCount);
 
   useEffect(() => {
     Promise.all([
@@ -14,7 +24,7 @@ export default function DonaturBerandaPage() {
       api.get('/panti')
     ])
       .then(([storiesRes, pantisRes]) => {
-        setStories(storiesRes.data.data.slice(0, 3));
+        setStories(storiesRes.data.data);
         setPantis(pantisRes.data.data);
       })
       .catch(() => { });
@@ -23,7 +33,7 @@ export default function DonaturBerandaPage() {
   return (
     <PageShell
       title="Beranda Donatur"
-      subtitle="Lihat ringkasan, cerita aktivitas panti, dan akses cepat ke katalog kebutuhan realtime, tracking dana, serta riwayat donasi pribadi."
+      subtitle="Lihat ringkasan, cerita aktivitas panti, dan akses cepat ke kebutuhan realtime, tracking dana, serta riwayat donasi pribadi."
       actions={[
         <Button key="donasi" as={Link} to="/donatur/donasi">Donasi Sekarang</Button>
       ]}
@@ -52,14 +62,27 @@ export default function DonaturBerandaPage() {
       <Card className="mt-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold text-slate-800">Panti Asuhan Terdaftar</h2>
-          <Badge tone="moss">Mitra Aktif</Badge>
         </div>
         <p className="text-sm text-slate-500 mt-1">
-          Klik card panti asuhan untuk melihat detail profil, alamat, kontak, dan deskripsi panti.
+          Klik card panti asuhan untuk melihat detail panti.
         </p>
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {pantis.map((panti) => (
+        <div className="mt-6 flex items-center gap-3">
+          <Button
+            type="button"
+            variant="soft"
+            disabled={pantiStart === 0}
+            onClick={() => setPantiStart((prev) => Math.max(0, prev - 1))}
+            className="shrink-0 !rounded-full !p-3 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Geser panti ke kiri"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </Button>
+          <div className="flex-1 overflow-hidden">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {visiblePantis.map((panti) => (
             <div
               key={panti.id}
               onClick={() => setSelectedPanti(panti)}
@@ -99,12 +122,26 @@ export default function DonaturBerandaPage() {
                 </div>
               </div>
             </div>
-          ))}
-          {pantis.length === 0 ? (
-            <p className="col-span-full text-center text-sm text-slate-400 py-8">
-              Belum ada panti asuhan yang terdaftar.
-            </p>
-          ) : null}
+              ))}
+              {visiblePantis.length === 0 ? (
+                <p className="col-span-full text-center text-sm text-slate-400 py-8">
+                  Belum ada panti asuhan yang terdaftar.
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="soft"
+            disabled={pantiStart >= maxPantiStart}
+            onClick={() => setPantiStart((prev) => Math.min(maxPantiStart, prev + 1))}
+            className="shrink-0 !rounded-full !p-3 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Geser panti ke kanan"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </Button>
         </div>
       </Card>
 
@@ -112,17 +149,59 @@ export default function DonaturBerandaPage() {
       <Card className="mt-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl font-bold">Cerita terbaru</h2>
-          <Badge tone="sea">Dari API SQL</Badge>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {stories.map((story) => (
-            <div key={story.id} className="rounded-3xl border border-slate-200 bg-white p-4">
-              {story.foto_url ? <img src={story.foto_url} alt={story.judul} className="mb-3 h-44 w-full rounded-2xl object-cover" /> : null}
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-ember/70">{story.nama_panti}</p>
-              <h3 className="mt-2 font-bold text-ink">{story.judul}</h3>
-              <p className="mt-2 text-sm text-slate-600">{story.konten}</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Klik card untuk melihat detail kisah kami.
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            type="button"
+            variant="soft"
+            disabled={storyStart === 0}
+            onClick={() => setStoryStart((prev) => Math.max(0, prev - 1))}
+            className="shrink-0 !rounded-full !p-3 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Geser cerita ke kiri"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </Button>
+          <div className="flex-1 overflow-hidden">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {visibleStories.map((story) => (
+                <Link
+                  key={story.id}
+                  to={`/donatur/cerita/${story.id}`}
+                  className="group rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
+                >
+                  {(story.foto_urls?.[0] || story.foto_url) ? (
+                    <img src={story.foto_urls?.[0] || story.foto_url} alt={story.judul} className="mb-3 h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.02]" />
+                  ) : null}
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-ember/70">{story.nama_panti}</p>
+                  <h3 className="mt-2 font-bold text-ink group-hover:text-teal-700 transition-colors">{story.judul}</h3>
+                  <p className="mt-2 text-sm text-slate-600 line-clamp-3">{story.konten}</p>
+                  <div className="mt-4 text-xs font-semibold text-teal-600">Baca cerita lengkap →</div>
+                </Link>
+              ))}
+              {visibleStories.length === 0 ? (
+                <p className="col-span-full text-center text-sm text-slate-400 py-8">
+                  Belum ada cerita terbaru.
+                </p>
+              ) : null}
             </div>
-          ))}
+          </div>
+          <Button
+            type="button"
+            variant="soft"
+            disabled={storyStart >= maxStoryStart}
+            onClick={() => setStoryStart((prev) => Math.min(maxStoryStart, prev + 1))}
+            className="shrink-0 !rounded-full !p-3 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Geser cerita ke kanan"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </Button>
         </div>
       </Card>
 
