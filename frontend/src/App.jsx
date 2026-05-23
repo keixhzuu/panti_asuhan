@@ -19,6 +19,8 @@ import DonaturTrackingPage from './pages/donatur/DonaturTrackingPage';
 import DonaturGaleriPage from './pages/donatur/DonaturGaleriPage';
 import DonaturRiwayatPage from './pages/donatur/DonaturRiwayatPage';
 import DonaturNotifikasiPage from './pages/donatur/DonaturNotifikasiPage';
+import DonaturProfilePage from './pages/donatur/DonaturProfilePage';
+import AdminTambahPantiPage from './pages/admin/AdminTambahPantiPage';
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -54,6 +56,7 @@ export default function App() {
           <Route path="/admin/kumpulan-donasi/:id" element={<AdminDonationReviewPage />} />
           <Route path="/admin/penyaluran" element={<AdminPenyaluranPage />} />
           <Route path="/admin/cerita" element={<AdminCeritaPage />} />
+          <Route path="/admin/tambah-panti" element={<AdminTambahPantiPage />} />
         </Route>
       </Route>
 
@@ -65,6 +68,7 @@ export default function App() {
           <Route path="/donatur/galeri" element={<DonaturGaleriPage />} />
           <Route path="/donatur/riwayat" element={<DonaturRiwayatPage />} />
           <Route path="/donatur/notifikasi" element={<DonaturNotifikasiPage />} />
+          <Route path="/donatur/profil" element={<DonaturProfilePage />} />
         </Route>
       </Route>
 

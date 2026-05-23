@@ -17,7 +17,8 @@ const donorNav = [
   { to: '/donatur/tracking', label: 'Tracking' },
   { to: '/donatur/galeri', label: 'Galeri' },
   { to: '/donatur/riwayat', label: 'Riwayat' },
-  { to: '/donatur/notifikasi', label: 'Notifikasi' }
+  { to: '/donatur/notifikasi', label: 'Notifikasi' },
+  { to: '/donatur/profil', label: 'Profil' },
 ];
 
 export default function Layout() {

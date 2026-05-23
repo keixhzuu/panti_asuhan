@@ -24,7 +24,6 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('pengurus', 'donatur')),
-    id_panti INT NULL REFERENCES panti(id) ON DELETE CASCADE,
     id_donatur INT NULL REFERENCES donatur(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -68,17 +67,7 @@ CREATE TABLE penyaluran_dana (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Tabel laporan_transparansi
-CREATE TABLE laporan_transparansi (
-    id SERIAL PRIMARY KEY,
-    id_penyaluran INT NOT NULL REFERENCES penyaluran_dana(id) ON DELETE CASCADE,
-    total_dana_masuk DECIMAL(15,2) NOT NULL,
-    total_dana_keluar DECIMAL(15,2) NOT NULL,
-    saldo_akhir DECIMAL(15,2) NOT NULL,
-    periode_bulan DATE NOT NULL,
-    file_laporan_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
 
 -- 8. Tabel cerita_aktivitas (baru)
 CREATE TABLE cerita_aktivitas (

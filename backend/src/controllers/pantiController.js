@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
+const { uploadBufferToStorage } = require('../utils/storage');
 
 const getAll = asyncHandler(async (req, res) => {
   const result = await pool.query('SELECT * FROM panti ORDER BY created_at DESC');
@@ -16,16 +17,22 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const createOne = asyncHandler(async (req, res) => {
-  const { nama_panti, alamat, no_telepon, email_panti } = req.body;
+  const { nama_panti, alamat, no_telepon, email_panti, deskripsi } = req.body;
   if (!nama_panti) {
     return res.status(400).json({ message: 'Nama panti wajib diisi.' });
   }
 
+  let foto_panti_url = null;
+  if (req.file) {
+    const uploaded = await uploadBufferToStorage(req.file, 'foto-panti');
+    foto_panti_url = uploaded?.url || null;
+  }
+
   const result = await pool.query(
-    `INSERT INTO panti (nama_panti, alamat, no_telepon, email_panti)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO panti (nama_panti, alamat, no_telepon, email_panti, foto_panti_url, deskripsi)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [nama_panti, alamat || null, no_telepon || null, email_panti || null]
+    [nama_panti, alamat || null, no_telepon || null, email_panti || null, foto_panti_url, deskripsi || null]
   );
 
   return sendSuccess(res, 'Panti berhasil ditambahkan.', result.rows[0], 201);

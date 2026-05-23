@@ -32,7 +32,17 @@ export default function DonaturDonasiPage() {
   // Fetch requirements catalog
   useEffect(() => {
     api.get('/donatur/donasi')
-      .then((response) => setNeeds(response.data.data))
+      .then((response) => {
+        setNeeds(response.data.data);
+        const params = new URLSearchParams(window.location.search);
+        const pantiId = params.get('id_panti');
+        if (pantiId) {
+          const matchingNeed = response.data.data.find((item) => String(item.id_panti) === String(pantiId));
+          if (matchingNeed) {
+            setForm((prev) => ({ ...prev, id_kebutuhan: matchingNeed.id }));
+          }
+        }
+      })
       .catch(() => setNeeds([]));
   }, []);
 

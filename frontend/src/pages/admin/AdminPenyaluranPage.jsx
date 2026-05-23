@@ -13,7 +13,6 @@ const initialForm = {
 
 export default function AdminPenyaluranPage() {
   const [readyCategories, setReadyCategories] = useState([]);
-  const [pantis, setPantis] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
@@ -21,12 +20,8 @@ export default function AdminPenyaluranPage() {
 
   const loadData = async () => {
     try {
-      const [categoriesResponse, pantiResponse] = await Promise.all([
-        api.get('/penyaluran/ready-categories'),
-        api.get('/panti')
-      ]);
+      const categoriesResponse = await api.get('/penyaluran/ready-categories');
       setReadyCategories(categoriesResponse.data.data);
-      setPantis(pantiResponse.data.data);
     } catch (loadError) {
       setError('Gagal memuat data penyaluran.');
     }
@@ -97,7 +92,7 @@ export default function AdminPenyaluranPage() {
                 <option value="">Pilih kategori barang</option>
                 {readyCategories.map((item) => (
                   <option key={item.id_kebutuhan} value={item.id_kebutuhan}>
-                    {item.nama_barang} ({item.nama_panti}) - Total: {formatCurrency(item.total_nominal)}
+                    {item.nama_barang} — {formatCurrency(item.total_nominal)}
                   </option>
                 ))}
               </SelectField>
@@ -105,19 +100,17 @@ export default function AdminPenyaluranPage() {
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Penerima Panti</label>
-              <SelectField
-                value={form.id_panti}
-                disabled={!!form.id_kebutuhan}
-                onChange={(e) => setForm((prev) => ({ ...prev, id_panti: e.target.value }))}
-                className={form.id_kebutuhan ? 'bg-slate-50 border-slate-100 text-slate-500 cursor-not-allowed' : ''}
-              >
-                <option value="">Pilih panti</option>
-                {pantis.map((panti) => (
-                  <option key={panti.id} value={panti.id}>
-                    {panti.nama_panti}
-                  </option>
-                ))}
-              </SelectField>
+              <TextField
+                type="text"
+                placeholder="Pilih kategori untuk mengisi panti"
+                value={
+                  form.id_kebutuhan
+                    ? readyCategories.find((cat) => String(cat.id_kebutuhan) === String(form.id_kebutuhan))?.nama_panti || ''
+                    : ''
+                }
+                readOnly
+                className="bg-slate-50 border-slate-100 text-slate-500 font-extrabold cursor-not-allowed"
+              />
             </div>
 
             <div>

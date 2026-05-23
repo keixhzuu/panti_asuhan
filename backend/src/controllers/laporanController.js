@@ -8,100 +8,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { uploadBufferToStorage } = require('../utils/storage');
 
-function createPdfBuffer(payload) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const chunks = [];
 
-    doc.on('data', (chunk) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
-
-    doc.fontSize(20).text('Laporan Transparansi Donasi', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Periode: ${payload.periode_bulan}`);
-    doc.text(`Total dana masuk: Rp ${Number(payload.total_dana_masuk).toLocaleString('id-ID')}`);
-    doc.text(`Total dana keluar: Rp ${Number(payload.total_dana_keluar).toLocaleString('id-ID')}`);
-    doc.text(`Saldo akhir: Rp ${Number(payload.saldo_akhir).toLocaleString('id-ID')}`);
-    doc.moveDown();
-    doc.text('Dokumen ini digenerate otomatis oleh sistem donasi panti asuhan.');
-    doc.end();
-  });
-}
-
-const getAll = asyncHandler(async (req, res) => {
-  const result = await pool.query('SELECT * FROM laporan_transparansi ORDER BY created_at DESC');
-  return sendSuccess(res, 'Daftar laporan berhasil dimuat.', result.rows);
-});
-
-const generateOne = asyncHandler(async (req, res) => {
-  const monthInput = req.body.periode_bulan || req.body.month;
-  const dateValue = monthInput ? new Date(monthInput) : new Date();
-  const periodStart = new Date(dateValue.getFullYear(), dateValue.getMonth(), 1);
-  const periodLabel = periodStart.toISOString().slice(0, 10);
-
-  const [masukResult, keluarResult, penyaluranResult] = await Promise.all([
-    pool.query(
-      `SELECT COALESCE(SUM(nominal), 0) AS total
-       FROM donasi
-      WHERE status = 'verifikasi'
-       AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', $1::date)`,
-      [periodLabel]
-    ),
-    pool.query(
-      `SELECT COALESCE(SUM(jumlah_disalurkan), 0) AS total
-       FROM penyaluran_dana
-       WHERE status_penyaluran = 'berhasil'
-       AND DATE_TRUNC('month', tanggal_salur) = DATE_TRUNC('month', $1::date)`,
-      [periodLabel]
-    ),
-    pool.query(
-      `SELECT id
-       FROM penyaluran_dana
-       WHERE DATE_TRUNC('month', tanggal_salur) = DATE_TRUNC('month', $1::date)
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [periodLabel]
-    )
-  ]);
-
-  if (penyaluranResult.rowCount === 0) {
-    return res.status(400).json({ message: 'Belum ada data penyaluran untuk periode ini.' });
-  }
-
-  const totalDanaMasuk = Number(masukResult.rows[0].total);
-  const totalDanaKeluar = Number(keluarResult.rows[0].total);
-  const saldoAkhir = totalDanaMasuk - totalDanaKeluar;
-
-  const pdfBuffer = await createPdfBuffer({
-    periode_bulan: periodLabel,
-    total_dana_masuk: totalDanaMasuk,
-    total_dana_keluar: totalDanaKeluar,
-    saldo_akhir: saldoAkhir
-  });
-
-  const uploaded = await uploadBufferToStorage(
-    {
-      buffer: pdfBuffer,
-      originalname: `laporan-${periodLabel}.pdf`,
-      mimetype: 'application/pdf'
-    },
-    'laporan-transparansi'
-  );
-
-  const insertResult = await pool.query(
-    `INSERT INTO laporan_transparansi
-      (id_penyaluran, total_dana_masuk, total_dana_keluar, saldo_akhir, periode_bulan, file_laporan_url)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
-    [penyaluranResult.rows[0].id, totalDanaMasuk, totalDanaKeluar, saldoAkhir, periodLabel, uploaded?.url || null]
-  );
-
-  return sendSuccess(res, 'Laporan transparansi berhasil dibuat.', {
-    report: insertResult.rows[0],
-    file_url: uploaded?.url || null
-  }, 201);
-});
 
 const downloadPdf = asyncHandler(async (req, res) => {
   const monthInput = req.query.periode_bulan || req.query.month;
@@ -311,8 +218,8 @@ const downloadPdf = asyncHandler(async (req, res) => {
   doc.fillColor('#0C1B33').fontSize(12).font('Helvetica-Bold').text('B. Rincian Pengeluaran (Penyaluran Dana)', 50, doc.y);
   doc.moveDown(0.4);
 
-  const colWidthsKeluar = [25, 75, 125, 110, 97, 80];
-  drawTableRow(doc, ['No', 'Tanggal Salur', 'Nama Panti', 'Barang / Kebutuhan', 'Penggunaan', 'Jumlah Keluar'], colWidthsKeluar, true, 'keluar');
+  const colWidthsKeluar = [25, 75, 110, 110, 110, 82];
+  drawTableRow(doc, ['No', 'Tanggal Salur', 'Penerima (Panti)', 'Barang / Kebutuhan', 'Keterangan Penggunaan', 'Jumlah Keluar'], colWidthsKeluar, true, 'keluar');
 
   if (rincianKeluar.rows.length === 0) {
     drawTableRow(doc, ['-', '-', 'Tidak ada data pengeluaran', '-', '-', 'Rp 0'], colWidthsKeluar, true);
@@ -570,7 +477,7 @@ const downloadExcel = asyncHandler(async (req, res) => {
   // Table 2: Pengeluaran
   sheet.addRow(['RINCIAN PENGELUARAN (PENYALURAN DANA)']).font = { bold: true, size: 12, color: { argb: 'FF991B1B' } };
 
-  const headerKeluarRow = sheet.addRow(['No', 'Tanggal Salur', 'Nama Panti', 'Barang / Kebutuhan', 'Deskripsi Penggunaan', 'Jumlah Keluar']);
+  const headerKeluarRow = sheet.addRow(['No', 'Tanggal Salur', 'Penerima (Panti)', 'Barang / Kebutuhan', 'Keterangan Penggunaan', 'Jumlah Keluar']);
   headerKeluarRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   headerKeluarRow.eachCell(cell => {
     cell.fill = {
@@ -632,6 +539,22 @@ const downloadExcel = asyncHandler(async (req, res) => {
   res.end();
 });
 
+const getKategoriData = asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT
+      COALESCE(p.nama_panti, 'Tidak Diketahui') AS kategori,
+      COALESCE(SUM(pd.jumlah_disalurkan), 0)::float AS total
+    FROM penyaluran_dana pd
+    JOIN panti p ON p.id = pd.id_panti
+    WHERE pd.status_penyaluran = 'berhasil'
+    GROUP BY p.nama_panti
+    ORDER BY total DESC
+    LIMIT 10
+  `);
+
+  return sendSuccess(res, 'Data kategori penyaluran berhasil dimuat.', result.rows);
+});
+
 const getTrendData = asyncHandler(async (req, res) => {
   const result = await pool.query(`
     WITH daily_masuk AS (
@@ -666,9 +589,8 @@ const getTrendData = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getAll,
-  generateOne,
   downloadPdf,
   downloadExcel,
-  getTrendData
+  getTrendData,
+  getKategoriData
 };

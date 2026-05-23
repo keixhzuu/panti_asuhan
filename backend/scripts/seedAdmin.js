@@ -28,8 +28,8 @@ async function run() {
     const adminLookup = await client.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [adminEmail]);
     if (adminLookup.rowCount === 0) {
       await client.query(
-        `INSERT INTO users (email, password_hash, role, id_panti) VALUES ($1, $2, $3, $4)`,
-        [adminEmail, adminHash, 'pengurus', pantiRow.id]
+        `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3)`,
+        [adminEmail, adminHash, 'pengurus']
       );
     }
 

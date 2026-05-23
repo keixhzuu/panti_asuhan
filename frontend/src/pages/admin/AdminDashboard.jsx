@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../lib/api';
-import { Card, PageShell, StatCard, Badge } from '../../components/UI';
+import { Card, PageShell, StatCard, Badge, Button } from '../../components/UI';
 import { formatCurrency } from '../../utils/format';
 import TransactionChart from '../../components/TransactionChart';
+import PieChart from '../../components/PieChart';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [recentNeeds, setRecentNeeds] = useState([]);
   const [recentDonations, setRecentDonations] = useState([]);
+  const [kategoriData, setKategoriData] = useState([]);
 
   useEffect(() => {
     Promise.all([
       api.get('/admin/dashboard'),
       api.get('/kebutuhan'),
-      api.get('/donasi/pending')
+      api.get('/donasi/pending'),
+      api.get('/laporan/kategori')
     ])
-      .then(([statsResponse, needsResponse, donationResponse]) => {
+      .then(([statsResponse, needsResponse, donationResponse, kategoriResponse]) => {
         setStats(statsResponse.data.data);
         const sortedNeeds = [...needsResponse.data.data].sort((a, b) => {
           const remainingA = Number(a.sisa_kebutuhan_terverifikasi ?? a.jumlah_dibutuhkan ?? 0);
@@ -27,6 +31,7 @@ export default function AdminDashboard() {
         });
         setRecentNeeds(sortedNeeds.slice(0, 5));
         setRecentDonations(donationResponse.data.data.slice(0, 5));
+        setKategoriData(kategoriResponse.data.data);
       })
       .catch(() => { });
   }, []);
@@ -108,6 +113,14 @@ export default function AdminDashboard() {
     <PageShell
       title="Dashboard Admin"
       subtitle="Pantau donasi masuk, kebutuhan aktif, jumlah donatur, dan kebutuhan yang sudah terpenuhi dalam satu tampilan."
+      actions={[
+        <Button key="tambah-panti" as={Link} to="/admin/tambah-panti" variant="soft">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Tambah Panti
+        </Button>
+      ]}
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Total Donasi Masuk" value={formatCurrency(stats?.total_donasi_masuk)} tone="ember" />
@@ -161,7 +174,7 @@ export default function AdminDashboard() {
 
       <div className="grid gap-6 xl:grid-cols-3 mt-6">
         <div className="xl:col-span-2">
-          <Card className="h-full">
+          <Card>
             <h2 className="font-display text-2xl font-bold">Tren Pemasukan & Pengeluaran</h2>
             <p className="text-sm text-slate-500 mt-1">Grafik harian dana donasi terverifikasi vs penyaluran dana berhasil (30 hari terakhir)</p>
             <div className="mt-6 h-[300px]">
@@ -170,6 +183,14 @@ export default function AdminDashboard() {
               ) : (
                 <div className="flex h-full items-center justify-center text-slate-400">Memuat data grafik...</div>
               )}
+            </div>
+
+            <div className="my-6 border-t border-slate-100" />
+
+            <div>
+              <h2 className="font-display text-2xl font-bold">Distribusi Penyaluran per Panti Penerima</h2>
+              <p className="text-sm text-slate-500 mt-1">Proporsi total dana yang tersalurkan berdasarkan panti asuhan penerima manfaat.</p>
+              <PieChart data={kategoriData} />
             </div>
           </Card>
         </div>

@@ -3,22 +3,26 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signToken } = require('../utils/jwt');
+const { uploadBufferToStorage } = require('../utils/storage');
 
 function buildProfile(row) {
   if (!row) {
     return null;
   }
 
+  const isPengurus = row.role === 'pengurus';
+
   return {
     id: row.id,
     email: row.email,
     role: row.role,
     id_donatur: row.id_donatur,
-    id_panti: row.id_panti,
-    nama: row.nama || row.nama_panti || row.email,
+    id_panti: null,
+    nama: isPengurus ? 'Admin Peduli Panti' : (row.nama || row.email),
     no_hp: row.no_hp || null,
-    alamat: row.alamat || row.alamat_panti || null,
-    nama_panti: row.nama_panti || null
+    alamat: isPengurus ? 'Kantor Layanan Peduli Panti' : (row.alamat || null),
+    nama_panti: null,
+    foto_profil_url: row.foto_profil_url || null
   };
 }
 
@@ -90,11 +94,9 @@ const login = asyncHandler(async (req, res) => {
       d.nama,
       d.no_hp,
       d.alamat,
-      p.nama_panti,
-      p.alamat AS alamat_panti
+      d.foto_profil_url
     FROM users u
     LEFT JOIN donatur d ON d.id = u.id_donatur
-    LEFT JOIN panti p ON p.id = u.id_panti
     WHERE u.email = $1
     LIMIT 1`,
     [email]
@@ -115,7 +117,7 @@ const login = asyncHandler(async (req, res) => {
     email: user.email,
     role: user.role,
     idDonatur: user.id_donatur,
-    idPanti: user.id_panti
+    idPanti: null
   });
 
   return sendSuccess(res, 'Login berhasil.', {
@@ -132,11 +134,9 @@ const me = asyncHandler(async (req, res) => {
       d.nama,
       d.no_hp,
       d.alamat,
-      p.nama_panti,
-      p.alamat AS alamat_panti
+      d.foto_profil_url
     FROM users u
     LEFT JOIN donatur d ON d.id = u.id_donatur
-    LEFT JOIN panti p ON p.id = u.id_panti
     WHERE u.id = $1
     LIMIT 1`,
     [userId]
@@ -150,8 +150,83 @@ const me = asyncHandler(async (req, res) => {
   return sendSuccess(res, 'Profil berhasil dimuat.', buildProfile(user));
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const idDonatur = req.user.idDonatur;
+
+  if (!idDonatur) {
+    return res.status(403).json({ message: 'Hanya donatur yang dapat memperbarui profil.' });
+  }
+
+  const { nama, no_hp, alamat } = req.body;
+
+  let foto_profil_url = null;
+  if (req.file) {
+    const uploaded = await uploadBufferToStorage(req.file, 'foto-profil');
+    foto_profil_url = uploaded?.url || null;
+  }
+
+  // Build dynamic update — only touch foto_profil_url if a new file was uploaded
+  const setClause = foto_profil_url
+    ? `nama = COALESCE($1, nama), no_hp = COALESCE($2, no_hp), alamat = COALESCE($3, alamat), foto_profil_url = $4`
+    : `nama = COALESCE($1, nama), no_hp = COALESCE($2, no_hp), alamat = COALESCE($3, alamat)`;
+
+  const params = foto_profil_url
+    ? [nama || null, no_hp || null, alamat || null, foto_profil_url, idDonatur]
+    : [nama || null, no_hp || null, alamat || null, idDonatur];
+
+  const idParam = foto_profil_url ? '$5' : '$4';
+
+  const result = await pool.query(
+    `UPDATE donatur SET ${setClause} WHERE id = ${idParam} RETURNING *`,
+    params
+  );
+
+  if (result.rowCount === 0) {
+    return res.status(404).json({ message: 'Donatur tidak ditemukan.' });
+  }
+
+  const updated = result.rows[0];
+  return sendSuccess(res, 'Profil berhasil diperbarui.', {
+    nama: updated.nama,
+    no_hp: updated.no_hp,
+    alamat: updated.alamat,
+    foto_profil_url: updated.foto_profil_url
+  });
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { password_lama, password_baru } = req.body;
+
+  if (!password_lama || !password_baru) {
+    return res.status(400).json({ message: 'Password lama dan password baru wajib diisi.' });
+  }
+
+  if (password_baru.length < 6) {
+    return res.status(400).json({ message: 'Password baru minimal 6 karakter.' });
+  }
+
+  const userResult = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+  if (userResult.rowCount === 0) {
+    return res.status(404).json({ message: 'Pengguna tidak ditemukan.' });
+  }
+
+  const valid = await comparePassword(password_lama, userResult.rows[0].password_hash);
+  if (!valid) {
+    return res.status(401).json({ message: 'Password lama tidak sesuai.' });
+  }
+
+  const newHash = await hashPassword(password_baru);
+  await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+
+  return sendSuccess(res, 'Password berhasil diubah.');
+});
+
 module.exports = {
   register,
   login,
-  me
+  me,
+  updateProfile,
+  changePassword
 };
