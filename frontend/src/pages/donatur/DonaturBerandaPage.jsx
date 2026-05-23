@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import { Badge, Button, Card, PageShell, StatCard } from '../../components/UI';
+import TransactionChart from '../../components/TransactionChart';
 
 export default function DonaturBerandaPage() {
   const [stories, setStories] = useState([]);
+  const [trendData, setTrendData] = useState([]);
 
   useEffect(() => {
-    api.get('/cerita')
-      .then((response) => setStories(response.data.data.slice(0, 3)))
-      .catch(() => {});
+    Promise.all([
+      api.get('/cerita'),
+      api.get('/laporan/trend')
+    ])
+      .then(([storiesResponse, trendResponse]) => {
+        setStories(storiesResponse.data.data.slice(0, 3));
+        setTrendData(trendResponse.data.data);
+      })
+      .catch(() => { });
   }, []);
 
   return (
@@ -17,13 +25,13 @@ export default function DonaturBerandaPage() {
       title="Beranda Donatur"
       subtitle="Lihat ringkasan, cerita aktivitas panti, dan akses cepat ke katalog kebutuhan realtime, tracking dana, serta riwayat donasi pribadi."
       actions={[
-        <Button key="katalog" as={Link} to="/donatur/katalog">Donasi Sekarang</Button>
+        <Button key="donasi" as={Link} to="/donatur/donasi">Donasi Sekarang</Button>
       ]}
     >
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Donasi Digital" value="Realtime" tone="ember" />
+        <StatCard label="Donasi Realtime" value="Transparan" tone="ember" />
         <StatCard label="Notifikasi" value="Langsung" tone="sea" />
-        <StatCard label="Transparansi" value="Penuh" tone="moss" />
+        <StatCard label="Penyaluran Dana" value="Terlacak" tone="moss" />
       </div>
 
       <Card>
@@ -40,6 +48,18 @@ export default function DonaturBerandaPage() {
               <p className="mt-2 text-sm text-slate-600">{story.konten}</p>
             </div>
           ))}
+        </div>
+      </Card>
+
+      <Card className="mt-6">
+        <h2 className="font-display text-2xl font-bold">Tren Transparansi Keuangan Panti</h2>
+        <p className="text-sm text-slate-500 mt-1">Pantau pergerakan dana masuk (donasi terverifikasi) dan dana keluar (penyaluran berhasil) selama 30 hari terakhir secara transparan.</p>
+        <div className="mt-6 h-[300px]">
+          {trendData && trendData.length > 0 ? (
+            <TransactionChart data={trendData} />
+          ) : (
+            <div className="flex h-full items-center justify-center text-slate-400">Memuat data grafik...</div>
+          )}
         </div>
       </Card>
     </PageShell>

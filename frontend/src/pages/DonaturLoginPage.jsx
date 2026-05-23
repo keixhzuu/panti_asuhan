@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button, Card, TextField } from '../components/UI';
 
 export default function DonaturLoginPage() {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -18,6 +18,7 @@ export default function DonaturLoginPage() {
     try {
       const user = await login(form);
       if (user.role !== 'donatur') {
+        logout();
         throw new Error('Akun ini bukan donatur.');
       }
       navigate('/donatur/beranda');

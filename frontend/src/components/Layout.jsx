@@ -6,13 +6,14 @@ const adminNav = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/kebutuhan', label: 'Kebutuhan' },
   { to: '/admin/verifikasi-donasi', label: 'Verifikasi Donasi' },
+  { to: '/admin/kumpulan-donasi', label: 'Kumpulan Donasi' },
   { to: '/admin/penyaluran', label: 'Penyaluran' },
   { to: '/admin/cerita', label: 'Cerita' }
 ];
 
 const donorNav = [
   { to: '/donatur/beranda', label: 'Beranda' },
-  { to: '/donatur/katalog', label: 'Katalog' },
+  { to: '/donatur/donasi', label: 'Donasi' },
   { to: '/donatur/tracking', label: 'Tracking' },
   { to: '/donatur/galeri', label: 'Galeri' },
   { to: '/donatur/riwayat', label: 'Riwayat' },

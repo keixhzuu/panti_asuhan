@@ -22,6 +22,12 @@ function requireRole(...allowedRoles) {
       return res.status(401).json({ message: 'Autentikasi diperlukan.' });
     }
 
+    console.log('requireRole check:', {
+      allowedRoles,
+      userRole: req.user?.role,
+      user: req.user
+    });
+
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Akses ditolak untuk role ini.' });
     }

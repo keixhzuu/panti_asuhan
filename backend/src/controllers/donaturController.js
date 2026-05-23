@@ -9,16 +9,22 @@ const getKatalogRealtime = asyncHandler(async (req, res) => {
     `SELECT
        k.*,
        p.nama_panti,
-       COALESCE(donasi_agg.total_donasi, 0) AS total_donasi_terkumpul,
-       GREATEST(k.jumlah_dibutuhkan - COALESCE(donasi_agg.total_donasi, 0), 0) AS sisa_donasi
+       COALESCE(verified_agg.total_verified, 0) AS total_donasi_terkumpul,
+       GREATEST(k.jumlah_dibutuhkan - COALESCE(pending_agg.total_pending, 0), 0) AS sisa_donasi
      FROM kebutuhan_logistik k
      JOIN panti p ON p.id = k.id_panti
      LEFT JOIN LATERAL (
-       SELECT COALESCE(SUM(dn.jumlah_donasi), 0) AS total_donasi
+       SELECT COALESCE(SUM(dn.jumlah_donasi), 0) AS total_pending
        FROM donasi dn
        WHERE dn.id_kebutuhan = k.id
-         AND dn.status IN ('pending', 'verifikasi')
-     ) donasi_agg ON TRUE
+         AND dn.status = 'pending'
+     ) pending_agg ON TRUE
+     LEFT JOIN LATERAL (
+       SELECT COALESCE(SUM(dn.jumlah_donasi), 0) AS total_verified
+       FROM donasi dn
+       WHERE dn.id_kebutuhan = k.id
+         AND dn.status = 'verifikasi'
+     ) verified_agg ON TRUE
      WHERE k.status = 'aktif'
      ORDER BY k.created_at DESC`
   );
@@ -111,16 +117,21 @@ const getNotifikasi = asyncHandler(async (req, res) => {
       dn.nominal,
       dn.metode_bayar,
       dn.created_at,
+      dn.alasan_ditolak,
       k.nama_barang,
       p.nama_panti,
       CASE
         WHEN dn.status = 'verifikasi' THEN 'Donasi diverifikasi'
         WHEN dn.status = 'ditolak' THEN 'Donasi ditolak'
+        WHEN dn.status = 'refund_diajukan' THEN 'Refund diajukan'
+        WHEN dn.status = 'refund_disetujui' THEN 'Refund disetujui'
         ELSE 'Donasi menunggu verifikasi'
       END AS judul,
       CASE
         WHEN dn.status = 'verifikasi' THEN CONCAT('Donasi untuk ', k.nama_barang, ' telah diverifikasi.')
-        WHEN dn.status = 'ditolak' THEN CONCAT('Donasi untuk ', k.nama_barang, ' ditolak.')
+        WHEN dn.status = 'ditolak' THEN CONCAT('Donasi untuk ', k.nama_barang, ' ditolak.', CASE WHEN dn.alasan_ditolak IS NOT NULL THEN CONCAT(' Alasan: ', dn.alasan_ditolak) ELSE '' END)
+        WHEN dn.status = 'refund_diajukan' THEN CONCAT('Pengajuan refund untuk ', k.nama_barang, ' sedang diproses.')
+        WHEN dn.status = 'refund_disetujui' THEN CONCAT('Pengajuan refund untuk ', k.nama_barang, ' telah disetujui.')
         ELSE CONCAT('Donasi untuk ', k.nama_barang, ' masih menunggu verifikasi.')
       END AS pesan
      FROM donasi dn

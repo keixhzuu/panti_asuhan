@@ -2,7 +2,7 @@ const pool = require('../config/db');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { uploadBufferToStorage } = require('../utils/storage');
-const { logDonationNotification, logTransparansiTimeline } = require('../utils/firestore');
+const { logDonationNotification, logTransparansiTimeline, syncKebutuhanRealtime } = require('../utils/firestore');
 
 const createOne = asyncHandler(async (req, res) => {
   const idDonatur = req.user.idDonatur;
@@ -39,7 +39,7 @@ const createOne = asyncHandler(async (req, res) => {
       `SELECT COALESCE(SUM(jumlah_donasi), 0) AS total_terkumpul
        FROM donasi
        WHERE id_kebutuhan = $1
-         AND status IN ('pending', 'verifikasi')`,
+         AND status = 'pending'`,
       [id_kebutuhan]
     );
 
@@ -108,52 +108,102 @@ const listVerified = asyncHandler(async (req, res) => {
   return sendSuccess(res, 'Daftar donasi verifikasi berhasil dimuat.', result.rows);
 });
 
+const listAll = asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    `SELECT dn.*, d.nama AS nama_donatur, k.nama_barang, p.nama_panti
+     FROM donasi dn
+     JOIN donatur d ON d.id = dn.id_donatur
+     JOIN kebutuhan_logistik k ON k.id = dn.id_kebutuhan
+     JOIN panti p ON p.id = k.id_panti
+     ORDER BY dn.created_at DESC`
+  );
+
+  return sendSuccess(res, 'Semua riwayat donasi berhasil dimuat.', result.rows);
+});
+
 const verifyOne = asyncHandler(async (req, res) => {
-  const { status } = req.body;
+  const { status, alasan_ditolak } = req.body;
   const allowedStatus = ['verifikasi', 'ditolak'];
 
   if (!allowedStatus.includes(status)) {
     return res.status(400).json({ message: 'Status verifikasi tidak valid.' });
   }
 
-  const result = await pool.query(
-    `UPDATE donasi
-     SET status = $1
-     WHERE id = $2
-     RETURNING *`,
-    [status, req.params.id]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (result.rowCount === 0) {
-    return res.status(404).json({ message: 'Donasi tidak ditemukan.' });
+    const donationCheck = await client.query('SELECT * FROM donasi WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (donationCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Donasi tidak ditemukan.' });
+    }
+    const oldDonation = donationCheck.rows[0];
+
+    if (oldDonation.status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Hanya donasi dengan status pending yang dapat diverifikasi.' });
+    }
+
+    const result = await client.query(
+      `UPDATE donasi
+       SET status = $1, alasan_ditolak = $2
+       WHERE id = $3
+       RETURNING *`,
+      [status, status === 'ditolak' ? (alasan_ditolak || null) : null, req.params.id]
+    );
+
+    const donation = result.rows[0];
+
+    if (status === 'verifikasi') {
+      const kebutuhanUpdate = await client.query(
+        `UPDATE kebutuhan_logistik
+         SET 
+           jumlah_dibutuhkan = GREATEST(0, jumlah_dibutuhkan - $1),
+           status = CASE WHEN jumlah_dibutuhkan - $1 <= 0 THEN 'selesai' ELSE status END
+         WHERE id = $2
+         RETURNING *`,
+        [donation.jumlah_donasi, donation.id_kebutuhan]
+      );
+      
+      if (kebutuhanUpdate.rowCount > 0) {
+        await syncKebutuhanRealtime(kebutuhanUpdate.rows[0]);
+      }
+    }
+
+    await client.query('COMMIT');
+
+    const donorInfo = await pool.query('SELECT email, nama FROM donatur WHERE id = $1', [donation.id_donatur]);
+    const kebutuhanInfo = await pool.query('SELECT nama_barang FROM kebutuhan_logistik WHERE id = $1', [donation.id_kebutuhan]);
+
+    await logDonationNotification({
+      id_donatur: donation.id_donatur,
+      id_donasi: donation.id,
+      judul: status === 'verifikasi' ? 'Donasi diverifikasi' : 'Donasi ditolak',
+      pesan: status === 'verifikasi'
+        ? `Donasi untuk ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} telah diverifikasi.`
+        : `Donasi untuk ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} ditolak.${alasan_ditolak ? ' Alasan: ' + alasan_ditolak : ''}`,
+      status,
+      email_donatur: donorInfo.rows[0]?.email || null
+    });
+
+    await logTransparansiTimeline({
+      id_donasi: donation.id,
+      tipe: 'verifikasi_donasi',
+      status,
+      nominal: Number(donation.nominal),
+      id_donatur: donation.id_donatur,
+      id_kebutuhan: donation.id_kebutuhan,
+      judul: 'Verifikasi donasi'
+    });
+
+    return sendSuccess(res, 'Status donasi berhasil diperbarui.', donation);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  const donation = result.rows[0];
-  const donorInfo = await pool.query('SELECT email, nama FROM donatur WHERE id = $1', [donation.id_donatur]);
-  const kebutuhanInfo = await pool.query('SELECT nama_barang FROM kebutuhan_logistik WHERE id = $1', [donation.id_kebutuhan]);
-
-  await logDonationNotification({
-    id_donatur: donation.id_donatur,
-    id_donasi: donation.id,
-    judul: status === 'verifikasi' ? 'Donasi diverifikasi' : 'Donasi ditolak',
-    pesan: status === 'verifikasi'
-      ? `Donasi untuk ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} telah diverifikasi.`
-      : `Donasi untuk ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} ditolak.`,
-    status,
-    email_donatur: donorInfo.rows[0]?.email || null
-  });
-
-  await logTransparansiTimeline({
-    id_donasi: donation.id,
-    tipe: 'verifikasi_donasi',
-    status,
-    nominal: Number(donation.nominal),
-    id_donatur: donation.id_donatur,
-    id_kebutuhan: donation.id_kebutuhan,
-    judul: 'Verifikasi donasi'
-  });
-
-  return sendSuccess(res, 'Status donasi berhasil diperbarui.', donation);
 });
 
 const getOne = asyncHandler(async (req, res) => {
@@ -212,10 +262,60 @@ const getOne = asyncHandler(async (req, res) => {
   return sendSuccess(res, 'Detail donasi berhasil dimuat.', donation);
 });
 
+const requestRefund = asyncHandler(async (req, res) => {
+  const idDonatur = req.user.idDonatur;
+  const { id } = req.params;
+
+  if (!idDonatur) {
+    return res.status(403).json({ message: 'Hanya donatur yang dapat mengajukan refund.' });
+  }
+
+  // Check if donation exists and belongs to the donor
+  const checkRes = await pool.query('SELECT * FROM donasi WHERE id = $1', [id]);
+  if (checkRes.rowCount === 0) {
+    return res.status(404).json({ message: 'Donasi tidak ditemukan.' });
+  }
+
+  const donation = checkRes.rows[0];
+  if (donation.id_donatur !== idDonatur) {
+    return res.status(403).json({ message: 'Akses ditolak. Donasi ini bukan milik Anda.' });
+  }
+
+  if (donation.status !== 'ditolak') {
+    return res.status(400).json({ message: 'Hanya donasi dengan status Ditolak yang dapat diajukan refund.' });
+  }
+
+  // Update status to refund_diajukan
+  const updateRes = await pool.query(
+    `UPDATE donasi
+     SET status = 'refund_diajukan'
+     WHERE id = $1
+     RETURNING *`,
+    [id]
+  );
+
+  const updatedDonation = updateRes.rows[0];
+  const donorInfo = await pool.query('SELECT email FROM donatur WHERE id = $1', [idDonatur]);
+  const kebutuhanInfo = await pool.query('SELECT nama_barang FROM kebutuhan_logistik WHERE id = $1', [updatedDonation.id_kebutuhan]);
+
+  await logDonationNotification({
+    id_donatur: idDonatur,
+    id_donasi: updatedDonation.id,
+    judul: 'Refund Diajukan',
+    pesan: `Pengajuan refund untuk donasi ${kebutuhanInfo.rows[0]?.nama_barang || 'kebutuhan'} sedang diproses.`,
+    status: 'refund_diajukan',
+    email_donatur: donorInfo.rows[0]?.email || null
+  });
+
+  return sendSuccess(res, 'Refund berhasil diajukan.', updatedDonation);
+});
+
 module.exports = {
   createOne,
   listPending,
   listVerified,
+  listAll,
   verifyOne,
-  getOne
+  getOne,
+  requestRefund
 };

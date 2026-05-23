@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button, Card, TextField } from '../components/UI';
 
 export default function AdminLoginPage() {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -18,6 +18,7 @@ export default function AdminLoginPage() {
     try {
       const user = await login(form);
       if (user.role !== 'pengurus') {
+        logout();
         throw new Error('Akun ini bukan admin/pengurus.');
       }
       navigate('/admin/dashboard');

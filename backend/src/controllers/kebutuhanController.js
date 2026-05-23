@@ -9,7 +9,7 @@ const getAll = asyncHandler(async (req, res) => {
        k.*,
        p.nama_panti,
        COALESCE(donasi_agg.total_terverifikasi, 0) AS total_donasi_terverifikasi,
-       GREATEST(k.jumlah_dibutuhkan - COALESCE(donasi_agg.total_terverifikasi, 0), 0) AS sisa_kebutuhan_terverifikasi
+       k.jumlah_dibutuhkan AS sisa_kebutuhan_terverifikasi
      FROM kebutuhan_logistik k
      JOIN panti p ON p.id = k.id_panti
      LEFT JOIN LATERAL (
@@ -29,7 +29,7 @@ const getById = asyncHandler(async (req, res) => {
        k.*,
        p.nama_panti,
        COALESCE(donasi_agg.total_terverifikasi, 0) AS total_donasi_terverifikasi,
-       GREATEST(k.jumlah_dibutuhkan - COALESCE(donasi_agg.total_terverifikasi, 0), 0) AS sisa_kebutuhan_terverifikasi
+       k.jumlah_dibutuhkan AS sisa_kebutuhan_terverifikasi
      FROM kebutuhan_logistik k
      JOIN panti p ON p.id = k.id_panti
      LEFT JOIN LATERAL (

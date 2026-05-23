@@ -7,10 +7,25 @@ const { uploadBufferToStorage } = require('../utils/storage');
 const { logBuktiFoto, logTransparansiTimeline } = require('../utils/firestore');
 
 const createOne = asyncHandler(async (req, res) => {
-  const { id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, status_penyaluran } = req.body;
+  const { id_kebutuhan, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, status_penyaluran } = req.body;
 
-  if (!id_donasi || !id_panti || !jumlah_disalurkan || !tanggal_salur) {
-    return res.status(400).json({ message: 'Donasi, panti, jumlah, dan tanggal salur wajib diisi.' });
+  if (!id_kebutuhan || !id_panti || !jumlah_disalurkan || !tanggal_salur) {
+    return res.status(400).json({ message: 'Kebutuhan, panti, jumlah, dan tanggal salur wajib diisi.' });
+  }
+
+  // Find all undistributed verified donations for this kebutuhan
+  const donationsResult = await pool.query(
+    `SELECT dn.id, dn.nominal 
+     FROM donasi dn
+     LEFT JOIN penyaluran_dana pd ON pd.id_donasi = dn.id
+     WHERE dn.id_kebutuhan = $1 
+       AND dn.status = 'verifikasi' 
+       AND pd.id IS NULL`,
+    [id_kebutuhan]
+  );
+
+  if (donationsResult.rowCount === 0) {
+    return res.status(400).json({ message: 'Tidak ada donasi terverifikasi yang siap disalurkan untuk kebutuhan ini.' });
   }
 
   let buktiUrl = null;
@@ -20,40 +35,80 @@ const createOne = asyncHandler(async (req, res) => {
     buktiUrl = uploaded?.url || null;
   }
 
+  const client = await pool.connect();
+  const createdPenyalurans = [];
+
+  try {
+    await client.query('BEGIN');
+
+    for (const donation of donationsResult.rows) {
+      const result = await client.query(
+        `INSERT INTO penyaluran_dana (id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, bukti_url, status_penyaluran)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [donation.id, id_panti, donation.nominal, tanggal_salur, deskripsi_penggunaan || null, buktiUrl, status_penyaluran || 'berhasil']
+      );
+
+      const penyaluran = result.rows[0];
+      createdPenyalurans.push(penyaluran);
+
+      if (buktiUrl) {
+        await logBuktiFoto({
+          id_penyaluran: penyaluran.id,
+          id_panti: Number(id_panti),
+          url: buktiUrl,
+          deskripsi: deskripsi_penggunaan || 'Bukti penyaluran dana',
+          tipe: 'penyaluran_dana'
+        });
+      }
+
+      await logTransparansiTimeline({
+        id_penyaluran: penyaluran.id,
+        id_donasi: Number(donation.id),
+        id_panti: Number(id_panti),
+        jumlah_disalurkan: Number(donation.nominal),
+        tanggal_salur,
+        deskripsi_penggunaan: deskripsi_penggunaan || null,
+        bukti_url: buktiUrl,
+        tipe: 'penyaluran_dana'
+      });
+    }
+
+    await client.query('COMMIT');
+
+    return sendSuccess(res, 'Penyaluran dana berhasil dibuat.', {
+      penyaluran_count: createdPenyalurans.length,
+      penyalurans: createdPenyalurans,
+      bukti_url: buktiUrl
+    }, 201);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+});
+
+const getReadyCategories = asyncHandler(async (req, res) => {
   const result = await pool.query(
-    `INSERT INTO penyaluran_dana (id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan, bukti_url, status_penyaluran)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING *`,
-    [id_donasi, id_panti, jumlah_disalurkan, tanggal_salur, deskripsi_penggunaan || null, buktiUrl, status_penyaluran || 'berhasil']
+    `SELECT 
+       k.id AS id_kebutuhan,
+       k.nama_barang,
+       k.id_panti,
+       p.nama_panti,
+       COALESCE(SUM(dn.nominal), 0) AS total_nominal
+     FROM donasi dn
+     JOIN kebutuhan_logistik k ON k.id = dn.id_kebutuhan
+     JOIN panti p ON p.id = k.id_panti
+     LEFT JOIN penyaluran_dana pd ON pd.id_donasi = dn.id
+     WHERE dn.status = 'verifikasi'
+       AND pd.id IS NULL
+     GROUP BY k.id, k.nama_barang, k.id_panti, p.nama_panti
+     HAVING COALESCE(SUM(dn.nominal), 0) > 0
+     ORDER BY k.nama_barang ASC`
   );
 
-  const penyaluran = result.rows[0];
-
-  if (buktiUrl) {
-    await logBuktiFoto({
-      id_penyaluran: penyaluran.id,
-      id_panti: Number(id_panti),
-      url: buktiUrl,
-      deskripsi: deskripsi_penggunaan || 'Bukti penyaluran dana',
-      tipe: 'penyaluran_dana'
-    });
-  }
-
-  await logTransparansiTimeline({
-    id_penyaluran: penyaluran.id,
-    id_donasi: Number(id_donasi),
-    id_panti: Number(id_panti),
-    jumlah_disalurkan: Number(jumlah_disalurkan),
-    tanggal_salur,
-    deskripsi_penggunaan: deskripsi_penggunaan || null,
-    bukti_url: buktiUrl,
-    tipe: 'penyaluran_dana'
-  });
-
-  return sendSuccess(res, 'Penyaluran dana berhasil dibuat.', {
-    ...penyaluran,
-    bukti_url: buktiUrl
-  }, 201);
+  return sendSuccess(res, 'Kategori donasi siap disalurkan berhasil dimuat.', result.rows);
 });
 
 const attachBukti = asyncHandler(async (req, res) => {
@@ -108,5 +163,6 @@ const attachBukti = asyncHandler(async (req, res) => {
 
 module.exports = {
   createOne,
-  attachBukti
+  attachBukti,
+  getReadyCategories
 };
