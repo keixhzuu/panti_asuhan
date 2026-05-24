@@ -16,4 +16,7 @@ steps:
         gcloud app deploy app.yaml --project=${PROJECT_ID} --quiet
     dir: 'frontend'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 timeout: '1200s'

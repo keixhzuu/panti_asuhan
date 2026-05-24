@@ -17,4 +17,7 @@ steps:
         # Deploy to App Engine in the build project
         gcloud app deploy frontend/app.yaml --project=${PROJECT_ID} --quiet
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 timeout: '1200s'
