@@ -1,7 +1,7 @@
 substitutions:
   _REGION: us-central1
-  _BACKEND_SERVICE: donasi-panti-backend
-  _REPO: donasi-panti
+  _BACKEND_SERVICE: panti-asuhan-backend
+  _REPO: donasi-panti-asuhan
   _GCS_BUCKET_NAME: projek-tcc-donasi-panti
 
 availableSecrets:
@@ -25,17 +25,19 @@ steps:
       - .
 
   # =========================
-  # PUSH IMAGE
+  # PUSH IMAGE (DITAMBAHKAN dir: backend)
   # =========================
   - name: gcr.io/cloud-builders/docker
+    dir: backend
     args:
       - push
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
 
   # =========================
-  # DEPLOY TO CLOUD RUN
+  # DEPLOY TO CLOUD RUN (DITAMBAHKAN dir: backend)
   # =========================
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    dir: backend
     entrypoint: bash
     secretEnv:
       - DATABASE_URL
