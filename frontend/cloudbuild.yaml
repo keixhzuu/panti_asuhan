@@ -14,8 +14,9 @@ steps:
       - -c
       - |
         set -euo pipefail
-        BACKEND_URL=$(gcloud run services describe donasi-panti-backend \
-          --region us-central1 \
+
+        BACKEND_URL=$(gcloud run services describe ${_BACKEND_SERVICE} \
+          --region ${_REGION} \
           --format='value(status.url)')
 
         if [[ -z "$BACKEND_URL" ]]; then
@@ -31,12 +32,16 @@ steps:
       - -c
       - |
         set -euo pipefail
+
         BACKEND_URL="$(cat /workspace/backend_url.txt)"
+
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
+
         docker build \
           --build-arg BACKEND_URL="${BACKEND_URL}" \
           -t "${IMAGE}" \
           frontend
+
         docker push "${IMAGE}"
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -45,10 +50,12 @@ steps:
       - -c
       - |
         set -euo pipefail
+
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
-        gcloud run deploy ${_FRONTEND_SERVICE} \
+
+        gcloud run deploy "${_FRONTEND_SERVICE}" \
           --image "${IMAGE}" \
-          --region ${_REGION} \
+          --region "${_REGION}" \
           --platform managed \
           --allow-unauthenticated
 
