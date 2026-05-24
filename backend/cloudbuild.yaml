@@ -1,46 +1,44 @@
 substitutions:
   _REGION: us-central1
   _BACKEND_SERVICE: donasi-panti-backend
-  _ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
   _REPO: donasi-panti
-  _PROJECT_ID: $PROJECT_ID
   _GCS_BUCKET_NAME: projek-tcc-donasi-panti
-  _DATABASE_URL: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+  # BUILD IMAGE
   - name: gcr.io/cloud-builders/docker
     dir: backend
     args:
       - build
       - -t
-      - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
       - .
 
+  # PUSH IMAGE
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
 
+  # DEPLOY KE CLOUD RUN
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
       - -c
       - |
         set -euo pipefail
-        if [[ -z "${_DATABASE_URL}" ]]; then
-          echo "Missing _DATABASE_URL substitution. Set it in the Cloud Build trigger or submit command."
-          exit 1
-        fi
+
+        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA"
 
         gcloud run deploy ${_BACKEND_SERVICE} \
-          --image ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA \
+          --image "$IMAGE" \
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars NODE_ENV=production,GCP_PROJECT_ID=${_PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},CORS_ORIGIN=https://donasi-panti-frontend-dot-${_PROJECT_ID}.et.r.appspot.com,DATABASE_URL=${_DATABASE_URL}
+          --set-env-vars NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},DATABASE_URL=${DATABASE_URL}
 
 images:
-  - ${_ARTIFACT_REGISTRY}/${_PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
