@@ -1,4 +1,4 @@
 runtime: nodejs22
 env: standard
-service: frontend
+service: frontend-panti-asuhan
 handlers: []
