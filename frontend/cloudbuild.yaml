@@ -1,6 +1,6 @@
 substitutions:
   _REGION: us-central1
-  _BACKEND_SERVICE: donasi-panti-backend # Pastikan ini sama persis dengan nama service backend-mu di Cloud Run
+  _BACKEND_SERVICE: donasi-panti-backend
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -27,17 +27,19 @@ steps:
         set -euo pipefail
         
         echo "Mengambil URL dari Cloud Run service: ${_BACKEND_SERVICE}..."
-        BACKEND_URL=$(gcloud run services describe ${_BACKEND_SERVICE} --region ${_REGION} --format='value(status.url)')
         
-        if [[ -z "$BACKEND_URL" ]]; then
+        # Diubah menjadi $$ agar dibaca sebagai variabel bash murni, bukan substitution GCP
+        BACKEND_URL=$$(gcloud run services describe ${_BACKEND_SERVICE} --region ${_REGION} --format='value(status.url)')
+        
+        if [[ -z "$$BACKEND_URL" ]]; then
           echo "Error: URL Backend tidak ditemukan di Cloud Run!"
           exit 1
         fi
         
-        echo "URL Backend ditemukan: $BACKEND_URL"
+        echo "URL Backend ditemukan: $$BACKEND_URL"
         
-        # Menyuntikkan URL backend ke environment variable Vite sebelum di-build
-        VITE_API_BASE_URL=$BACKEND_URL npm run build
+        # Menyuntikkan URL ke environment variable Vite sebelum dicompile
+        VITE_API_BASE_URL=$$BACKEND_URL npm run build
 
   # ==========================================
   # STEP 3: Deploy Folder Dist ke App Engine

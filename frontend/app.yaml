@@ -1,4 +1,14 @@
-runtime: nodejs22
-env: standard
+runtime: python39
 service: frontend-panti-asuhan
-handlers: []
+env: standard
+
+handlers:
+  # 1. Mengarahkan semua file aset (js, css, png, svg, dll) dari folder dist
+  - url: /(.*)\.(js|css|png|jpg|svg|ico|json)$
+    static_files: dist/\1.\2
+    upload: dist/(.*)\.(js|css|png|jpg|svg|ico|json)$
+
+  # 2. Mengarahkan semua rute halaman web (Client-side routing Vite) agar kembali ke index.html
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
