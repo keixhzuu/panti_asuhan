@@ -8,7 +8,9 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+  # =========================
   # BUILD IMAGE
+  # =========================
   - name: gcr.io/cloud-builders/docker
     dir: backend
     args:
@@ -17,13 +19,17 @@ steps:
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
       - .
 
+  # =========================
   # PUSH IMAGE
+  # =========================
   - name: gcr.io/cloud-builders/docker
     args:
       - push
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
 
-  # DEPLOY KE CLOUD RUN
+  # =========================
+  # DEPLOY TO CLOUD RUN
+  # =========================
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
@@ -38,7 +44,10 @@ steps:
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},DATABASE_URL=${DATABASE_URL}
+          --set-env-vars \
+            NODE_ENV=production,\
+            GCP_PROJECT_ID=${PROJECT_ID},\
+            GCS_BUCKET_NAME=${_GCS_BUCKET_NAME}
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
