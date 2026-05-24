@@ -4,6 +4,11 @@ substitutions:
   _REPO: donasi-panti
   _GCS_BUCKET_NAME: projek-tcc-donasi-panti
 
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/DATABASE_URL/versions/latest
+      env: DATABASE_URL
+
 options:
   logging: CLOUD_LOGGING_ONLY
 
@@ -32,10 +37,17 @@ steps:
   # =========================
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
+    secretEnv:
+      - DATABASE_URL
     args:
       - -c
       - |
         set -euo pipefail
+
+        if [[ -z "$$DATABASE_URL" ]]; then
+          echo "Missing DATABASE_URL secret in Secret Manager."
+          exit 1
+        fi
 
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA"
 
@@ -44,7 +56,7 @@ steps:
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \
-          --set-env-vars "NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME}"
+          --set-env-vars "NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},DATABASE_URL=$$DATABASE_URL"
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA
