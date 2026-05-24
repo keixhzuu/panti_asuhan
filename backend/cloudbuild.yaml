@@ -40,7 +40,7 @@ steps:
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_SERVICE}:$SHORT_SHA"
 
         gcloud run deploy ${_BACKEND_SERVICE} \
-          --image "$IMAGE" \
+          --image "$$IMAGE" \
           --region ${_REGION} \
           --platform managed \
           --allow-unauthenticated \

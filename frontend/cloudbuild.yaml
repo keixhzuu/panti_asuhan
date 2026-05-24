@@ -19,12 +19,12 @@ steps:
           --region ${_REGION} \
           --format='value(status.url)')
 
-        if [[ -z "$BACKEND_URL" ]]; then
+        if [[ -z "$$BACKEND_URL" ]]; then
           echo "Backend URL kosong"
           exit 1
         fi
 
-        echo "$BACKEND_URL" > /workspace/backend_url.txt
+        echo "$$BACKEND_URL" > /workspace/backend_url.txt
 
   - name: gcr.io/cloud-builders/docker
     entrypoint: bash
@@ -38,11 +38,11 @@ steps:
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
 
         docker build \
-          --build-arg BACKEND_URL="${BACKEND_URL}" \
-          -t "${IMAGE}" \
+          --build-arg BACKEND_URL="$$BACKEND_URL" \
+          -t "$$IMAGE" \
           frontend
 
-        docker push "${IMAGE}"
+        docker push "$$IMAGE"
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -54,7 +54,7 @@ steps:
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
 
         gcloud run deploy "${_FRONTEND_SERVICE}" \
-          --image "${IMAGE}" \
+          --image "$$IMAGE" \
           --region "${_REGION}" \
           --platform managed \
           --allow-unauthenticated
