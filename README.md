@@ -1,74 +1,67 @@
 # Sistem Donasi Panti Asuhan
 
-Repositori ini berisi aplikasi full-stack untuk sistem donasi panti asuhan.
+Repositori ini berisi aplikasi full-stack untuk sistem donasi panti asuhan menggunakan konsep Decoupled Architecture di atas layanan Cloud (PaaS).
 
 ## Isi
-- Backend: Node.js + Express
-- Frontend: React + Vite + Tailwind CSS
-- Database SQL: PostgreSQL
-- Realtime/Log: Firestore
-- Upload file: Cloud Storage
-- Deploy: Cloud Run, Cloud Build
+- **Backend:** Node.js + Express (Deployed to Google Cloud Run)
+- **Frontend:** React + Vite + Tailwind CSS (Deployed to Firebase Hosting)
+- **Database SQL:** PostgreSQL
+- **Realtime/Log:** Firestore
+- **Upload file:** Cloud Storage
+- **Deploy Pipeline:** Cloud Build (Backend) & Firebase CLI (Frontend)
 
-## Struktur
-- `backend/`: REST API dan integrasi database
-- `frontend/`: UI donatur dan pengurus
-- `database/schema.sql`: skema PostgreSQL
-- `cloudbuild.yaml`: contoh pipeline CI/CD
-- `.devops/`: helper scripts to create Cloud Build triggers and setup secrets
+## Struktur Folder
+- `backend/`: REST API, integrasi database, dan konfigurasi Cloud Run
+- `frontend/`: UI donatur, pengurus, konfigurasi Firebase Hosting, dan folder `dist` hasil build
+- `database/schema.sql`: Skema database PostgreSQL
+- `backend/cloudbuild.yaml`: Pipeline CI/CD untuk otomatisasi deploy backend
+- `.devops/`: Helper scripts untuk setup Secret Manager di GCP
 
-## Catatan
-- Isi file `.env.example` di backend dan frontend sebelum menjalankan aplikasi.
-- Skema Firestore digunakan untuk data realtime kebutuhan, notifikasi, bukti foto, dan timeline transparansi.
+## Catatan Konfigurasi (.env)
+Sebelum menjalankan atau melakukan *deploy* aplikasi, pastikan Anda telah menyalin dan mengisi file lingkungan:
+1. **Backend:** Isi `.env.example` di dalam folder `backend/` menjadi `.env`.
+2. **Frontend:** Isi `.env.example` di dalam folder `frontend/` menjadi `.env` dengan mengarahkan `VITE_API_BASE_URL` ke URL Cloud Run backend yang sudah aktif, serta memasukkan Firebase SDK Config yang sesuai dengan project.
 
-## Deploy GCP
+---
 
-Pipeline CI/CD dipisah per folder:
-- Backend: `backend/cloudbuild.yaml` + `backend/Dockerfile` untuk Cloud Run.
-- Frontend: `frontend/cloudbuild.yaml` + `frontend/Dockerfile` untuk Cloud Run.
+## Panduan Lengkap Deploy ke Cloud (PaaS)
 
-Yang sekarang otomatis:
-- Backend mengambil `DATABASE_URL` dari Secret Manager.
-- Frontend mengambil URL backend langsung dari Cloud Run service `donasi-panti-backend`.
-- Region default: `us-central1`.
+### 1. Backend (Google Cloud Run via Cloud Build)
+Backend dideploy sebagai container serverless ke Google Cloud Run. Pengelolaan infrastruktur sepenuhnya diatur secara otomatis oleh Google Cloud Platform.
 
-Contoh submit manual backend:
-```bash
-gcloud builds submit \
-	--config backend/cloudbuild.yaml \
-	--region us-central1
-```
+#### A. Persiapan Awal GCP
+1. Pastikan Anda sudah menginstal **Google Cloud CLI** di komputer lokal.
+2. Login ke akun GCP Anda melalui terminal:
+   ```bash
+   gcloud auth login
+3. Set project GCP aktif Anda (Ganti YOUR_GCP_PROJECT_ID dengan ID project asli Anda):
+	```bash
+	gcloud config set project YOUR_GCP_PROJECT_ID
 
-Contoh submit manual frontend:
-```bash
-gcloud builds submit \
-	--config frontend/cloudbuild.yaml \
-	--region us-central1
-```
+#### B. Cara Submit Manual Backend
+1. Jalankan perintah ini dari root folder repositori untuk mengirimkan kode backend ke Cloud Build secara manual:
+	```bash
+	gcloud builds submit --config backend/cloudbuild.yaml --region us-central1
+2. (Opsional) Jika ingin mengaktifkan trigger otomatis setiap melakukan git push ke GitHub beserta konfigurasi Secret Manager, jalankan skrip berikut:
+	```bash
+	chmod +x .devops/*.sh
+	./.devops/create_cloud_build_triggers.sh YOUR_GCP_PROJECT_ID YOUR_GITHUB_REPO_NAME
+	./.devops/setup_secrets.sh YOUR_GCP_PROJECT_ID
+	echo -n "postgresql://USER:PASSWORD@HOST:5432/donasi-panti" | gcloud secrets versions add DATABASE_URL --project=YOUR_GCP_PROJECT_ID --data-file=-
 
-Catatan tambahan:
-- Backend Cloud Run memakai `NODE_ENV`, `GCP_PROJECT_ID`, `GCS_BUCKET_NAME`, `CORS_ORIGIN`, dan `DATABASE_URL` dari deploy Cloud Build.
-- Frontend Cloud Run memakai `frontend/Dockerfile` dan server statis di `frontend/server.js`.
+#### c. Deploy Frontend Hosting Firebase
+1. Install Firebase CLI secara global dan lakukan login akun:
+	````bash
+	npm install -g firebase-tools
+	firebase login
+2. Masuk ke folder frontend dan lakukan inisialisasi awal (hanya perlu dilakukan sekali):
+	````bash
+	cd frontend
+	firebase init hosting
+(Pilih Use an existing project, arahkan ke project Anda, isi public directory dengan dist, pilih Yes untuk single-page app, dan pilih No saat ditanya overwrite index.html).
 
-### Membuat Cloud Build triggers & secrets
-
-Jika Anda ingin agar build berjalan otomatis dari GitHub, gunakan skrip di `.devops/` untuk membuat trigger dan menyiapkan Secret Manager.
-
-Contoh: buat trigger (GitHub) dan tambahkan secret `DATABASE_URL`:
-
-```bash
-# buat trigger (ganti PROJECT_ID dan REPO_NAME)
-./.devops/create_cloud_build_triggers.sh YOUR_GCP_PROJECT_ID YOUR_GITHUB_REPO_NAME
-
-# buat secret dan tambahkan versi (bash)
-./.devops/setup_secrets.sh YOUR_GCP_PROJECT_ID
-echo -n "postgresql://USER:PASSWORD@HOST:5432/donasi-panti" | \
-	gcloud secrets versions add DATABASE_URL --project=YOUR_GCP_PROJECT_ID --data-file=-
-```
-
-Catatan:
-- Trigger `donasi-backend-trigger` akan menjalankan `backend/cloudbuild.yaml` untuk perubahan pada `backend/**`.
-- Trigger `donasi-frontend-trigger` akan menjalankan `frontend/cloudbuild.yaml` untuk perubahan pada `frontend/**`.
-- Pastikan integrasi GitHub dengan Cloud Build sudah dikonfigurasi (Cloud Build GitHub App atau Cloud Source Repositories).
-
-Jika Anda ingin saya buat atau jalankan perintah `gcloud` untuk membuat trigger/secret, beri akses GCP atau jalankan perintah di mesin yang memiliki kredensial gcloud.
+3. Jalankan perintah kompilasi dan deploy setiap kali ada perubahan kode atau update file .env:
+	```bash
+	cd frontend
+	npm run build
+	firebase deploy --only hosting
