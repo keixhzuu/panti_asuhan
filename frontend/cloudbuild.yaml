@@ -16,7 +16,7 @@ steps:
     dir: 'frontend'
 
   # ==========================================
-  # STEP 2: Ambil URL Backend & Build Frontend
+  # STEP 2: Ambil URL Backend & Tulis ke .env
   # ==========================================
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
@@ -27,8 +27,6 @@ steps:
         set -euo pipefail
         
         echo "Mengambil URL dari Cloud Run service: ${_BACKEND_SERVICE}..."
-        
-        # Diubah menjadi $$ agar dibaca sebagai variabel bash murni, bukan substitution GCP
         BACKEND_URL=$$(gcloud run services describe ${_BACKEND_SERVICE} --region ${_REGION} --format='value(status.url)')
         
         if [[ -z "$$BACKEND_URL" ]]; then
@@ -38,11 +36,19 @@ steps:
         
         echo "URL Backend ditemukan: $$BACKEND_URL"
         
-        # Menyuntikkan URL ke environment variable Vite sebelum dicompile
-        VITE_API_BASE_URL=$$BACKEND_URL npm run build
+        # Membuat file .env otomatis agar nanti dibaca oleh Vite saat build
+        echo "VITE_API_BASE_URL=$$BACKEND_URL" > .env
+        echo "File .env berhasil dibuat otomatis."
 
   # ==========================================
-  # STEP 3: Deploy Folder Dist ke App Engine
+  # STEP 3: Build Frontend Menggunakan Container NPM
+  # ==========================================
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['run', 'build']
+    dir: 'frontend'
+
+  # ==========================================
+  # STEP 4: Deploy Folder Dist ke App Engine
   # ==========================================
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
