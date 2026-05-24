@@ -1,63 +1,19 @@
-substitutions:
-  _REGION: us-central1
-  _AR_REPO: donasi-panti
-  _FRONTEND_SERVICE: donasi-panti-frontend
-  _BACKEND_SERVICE: donasi-panti-backend
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-
 steps:
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: bash
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['install']
+    dir: 'frontend'
+
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['run', 'build']
+    dir: 'frontend'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'bash'
     args:
       - -c
       - |
         set -euo pipefail
+        gcloud app deploy app.yaml --project=${PROJECT_ID} --quiet
+    dir: 'frontend'
 
-        BACKEND_URL=$(gcloud run services describe ${_BACKEND_SERVICE} \
-          --region ${_REGION} \
-          --format='value(status.url)')
-
-        if [[ -z "$$BACKEND_URL" ]]; then
-          echo "Backend URL kosong"
-          exit 1
-        fi
-
-        echo "$$BACKEND_URL" > /workspace/backend_url.txt
-
-  - name: gcr.io/cloud-builders/docker
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-
-        BACKEND_URL="$(cat /workspace/backend_url.txt)"
-
-        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
-
-        docker build \
-          --build-arg BACKEND_URL="$$BACKEND_URL" \
-          -t "$$IMAGE" \
-          frontend
-
-        docker push "$$IMAGE"
-
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-
-        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
-
-        gcloud run deploy "${_FRONTEND_SERVICE}" \
-          --image "$$IMAGE" \
-          --region "${_REGION}" \
-          --platform managed \
-          --allow-unauthenticated
-
-images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA
+timeout: '1200s'
