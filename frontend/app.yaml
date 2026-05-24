@@ -1,6 +1,0 @@
-runtime: nodejs20
-service: donasi-panti-frontend
-entrypoint: npm start
-
-env_variables:
-  NODE_ENV: production

@@ -1,31 +1,55 @@
 substitutions:
   _REGION: us-central1
+  _AR_REPO: donasi-panti
   _FRONTEND_SERVICE: donasi-panti-frontend
-  _BACKEND_URL: ''
+  _BACKEND_SERVICE: donasi-panti-backend
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  - name: node:20
-    dir: frontend
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
       - -c
       - |
         set -euo pipefail
-        npm install
-        if [[ -z "${_BACKEND_URL}" ]]; then
-          echo "Missing _BACKEND_URL substitution. Set it to the Cloud Run backend URL before deploying frontend."
+        gcloud run services describe ${_BACKEND_SERVICE} \
+          --region ${_REGION} \
+          --format='value(status.url)' > /workspace/backend_url.txt
+        BACKEND_URL="$(cat /workspace/backend_url.txt)"
+        if [[ -z "${BACKEND_URL}" ]]; then
+          echo "Unable to resolve backend URL from Cloud Run service ${_BACKEND_SERVICE}."
           exit 1
         fi
-        VITE_API_BASE_URL=${_BACKEND_URL} npm run build
+        echo "Resolved backend URL: ${BACKEND_URL}"
+
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        BACKEND_URL="$(cat /workspace/backend_url.txt)"
+        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
+        docker build \
+          --build-arg BACKEND_URL="${BACKEND_URL}" \
+          -t "${IMAGE}" \
+          frontend
+        docker push "${IMAGE}"
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    dir: frontend
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - app
-      - deploy
-      - app.yaml
-      - --quiet
+      - -c
+      - |
+        set -euo pipefail
+        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA"
+        gcloud run deploy ${_FRONTEND_SERVICE} \
+          --image "${IMAGE}" \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_FRONTEND_SERVICE}:$SHORT_SHA

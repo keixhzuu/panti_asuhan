@@ -8,14 +8,14 @@ Repositori ini berisi aplikasi full-stack untuk sistem donasi panti asuhan.
 - Database SQL: PostgreSQL
 - Realtime/Log: Firestore
 - Upload file: Cloud Storage
-- Deploy: Cloud Run, App Engine, Cloud Build
+- Deploy: Cloud Run, Cloud Build
 
 ## Struktur
 - `backend/`: REST API dan integrasi database
 - `frontend/`: UI donatur dan pengurus
 - `database/schema.sql`: skema PostgreSQL
 - `cloudbuild.yaml`: contoh pipeline CI/CD
- - `.devops/`: helper scripts to create Cloud Build triggers and setup secrets
+- `.devops/`: helper scripts to create Cloud Build triggers and setup secrets
 
 ## Catatan
 - Isi file `.env.example` di backend dan frontend sebelum menjalankan aplikasi.
@@ -25,30 +25,30 @@ Repositori ini berisi aplikasi full-stack untuk sistem donasi panti asuhan.
 
 Pipeline CI/CD dipisah per folder:
 - Backend: `backend/cloudbuild.yaml` + `backend/Dockerfile` untuk Cloud Run.
-- Frontend: `frontend/cloudbuild.yaml` + `frontend/app.yaml` untuk App Engine.
+- Frontend: `frontend/cloudbuild.yaml` + `frontend/Dockerfile` untuk Cloud Run.
 
-Substitusi yang perlu disiapkan saat menjalankan Cloud Build:
-- `_DATABASE_URL`: connection string PostgreSQL produksi untuk backend Cloud Run.
-- `_BACKEND_URL`: URL Cloud Run backend, dipakai saat build frontend.
-- `_GCS_BUCKET_NAME`: nama bucket GCS produksi. Default saat ini `projek-tcc-donasi-panti`.
+Yang sekarang otomatis:
+- Backend mengambil `DATABASE_URL` dari Secret Manager.
+- Frontend mengambil URL backend langsung dari Cloud Run service `donasi-panti-backend`.
+- Region default: `us-central1`.
 
 Contoh submit manual backend:
 ```bash
 gcloud builds submit \
 	--config backend/cloudbuild.yaml \
-	--substitutions=_DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/donasi-panti"
+	--region us-central1
 ```
 
 Contoh submit manual frontend:
 ```bash
 gcloud builds submit \
 	--config frontend/cloudbuild.yaml \
-	--substitutions=_BACKEND_URL="https://YOUR-BACKEND-URL.a.run.app"
+	--region us-central1
 ```
 
 Catatan tambahan:
 - Backend Cloud Run memakai `NODE_ENV`, `GCP_PROJECT_ID`, `GCS_BUCKET_NAME`, `CORS_ORIGIN`, dan `DATABASE_URL` dari deploy Cloud Build.
-- Frontend App Engine memakai service `donasi-panti-frontend` dan server statis di `frontend/server.js`.
+- Frontend Cloud Run memakai `frontend/Dockerfile` dan server statis di `frontend/server.js`.
 
 ### Membuat Cloud Build triggers & secrets
 
