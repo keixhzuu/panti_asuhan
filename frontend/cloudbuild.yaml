@@ -14,15 +14,16 @@ steps:
       - -c
       - |
         set -euo pipefail
-        gcloud run services describe ${_BACKEND_SERVICE} \
-          --region ${_REGION} \
-          --format='value(status.url)' > /workspace/backend_url.txt
-        BACKEND_URL="$(cat /workspace/backend_url.txt)"
-        if [[ -z "${BACKEND_URL}" ]]; then
-          echo "Unable to resolve backend URL from Cloud Run service ${_BACKEND_SERVICE}."
+        BACKEND_URL=$(gcloud run services describe donasi-panti-backend \
+          --region us-central1 \
+          --format='value(status.url)')
+
+        if [[ -z "$BACKEND_URL" ]]; then
+          echo "Backend URL kosong"
           exit 1
         fi
-        echo "Resolved backend URL: ${BACKEND_URL}"
+
+        echo "$BACKEND_URL" > /workspace/backend_url.txt
 
   - name: gcr.io/cloud-builders/docker
     entrypoint: bash
